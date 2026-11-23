@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
+import { useGithub } from "@/lib/github-store";
 import { useBangkokTime } from "@/lib/time";
-import { ActivityFeed } from "./ActivityFeed";
+import { ActivityFeed, type FeedStatus } from "./ActivityFeed";
 import { ContributionGrid } from "./ContributionGrid";
 import { LocationMap } from "./LocationMap";
 import styles from "./screen.module.css";
@@ -18,6 +19,13 @@ type Tab = "activity" | "location";
 export function AppScreen() {
   const clock = useBangkokTime("short");
   const [tab, setTab] = useState<Tab>("activity");
+  const { activity, unreachable } = useGithub();
+
+  const feedStatus: FeedStatus = activity
+    ? "ready"
+    : unreachable
+      ? "unreachable"
+      : "loading";
 
   return (
     <div className={styles.app}>
@@ -81,8 +89,12 @@ export function AppScreen() {
           className={cn(styles.pane, tab !== "activity" && styles.off)}
           inert={tab !== "activity"}
         >
-          <ContributionGrid levels={null} />
-          <ActivityFeed items={null} />
+          <ContributionGrid levels={activity?.levels ?? null} />
+          <ActivityFeed
+            status={feedStatus}
+            items={activity?.pushes ?? []}
+            stale={activity?.stale ?? false}
+          />
         </div>
         <div
           id="phone-pane-location"
@@ -91,7 +103,7 @@ export function AppScreen() {
           className={cn(styles.pane, tab !== "location" && styles.off)}
           inert={tab !== "location"}
         >
-          <LocationMap />
+          <LocationMap active={tab === "location"} />
         </div>
       </div>
     </div>

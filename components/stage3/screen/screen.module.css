@@ -357,6 +357,42 @@
 .mapLabel {
   margin-top: 5.5em;
 }
+.mapbox {
+  overflow: hidden;
+}
+/* The real map fades in over the placeholder once its tiles load. */
+.mapView {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+.mapReady {
+  opacity: 1;
+}
+/* The pulsing marker. MapLibre positions it, so no absolute offsets here. */
+.marker {
+  display: block;
+  width: 0.9em;
+  height: 0.9em;
+  border-radius: 50%;
+  background: var(--violet);
+  box-shadow: 0 0 0 2px #fff;
+}
+.marker::before,
+.marker::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.2px solid var(--violet);
+  animation: ring 2s ease-out infinite;
+}
+.marker::after {
+  animation-delay: 1s;
+}
 .locinfo {
   margin-top: 1em;
   display: grid;

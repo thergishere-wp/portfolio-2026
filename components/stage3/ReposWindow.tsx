@@ -1,6 +1,8 @@
+"use client";
+
 import type { RepoSummary } from "@/lib/github-types";
 import { cn } from "@/lib/cn";
-import { formatRelative } from "@/lib/time";
+import { formatRelative, useNow } from "@/lib/time";
 import styles from "./ReposWindow.module.css";
 
 const LOCK = (
@@ -10,7 +12,7 @@ const LOCK = (
   </svg>
 );
 
-function RepoRow({ repo }: { repo: RepoSummary }) {
+function RepoRow({ repo, now }: { repo: RepoSummary; now: number }) {
   const body = (
     <>
       <b>
@@ -26,7 +28,7 @@ function RepoRow({ repo }: { repo: RepoSummary }) {
             {repo.language}
           </span>
         ) : null}
-        <span>Updated {formatRelative(repo.pushedAt)}</span>
+        <span>Updated {formatRelative(repo.pushedAt, "long", now)}</span>
       </span>
     </>
   );
@@ -53,12 +55,15 @@ function RepoRow({ repo }: { repo: RepoSummary }) {
 }
 
 interface ReposWindowProps {
-  /** Newest push first. Null while the data is not available. */
+  /** Most recently pushed first. Null while loading. */
   repos: RepoSummary[] | null;
+  /** The network failed and there is nothing to show. */
+  unreachable?: boolean;
 }
 
 /** The right-hand glass window: "What I'm building", a scrollable repo list. */
-export function ReposWindow({ repos }: ReposWindowProps) {
+export function ReposWindow({ repos, unreachable = false }: ReposWindowProps) {
+  const now = useNow();
   return (
     <div className={cn("glass", styles.repos)} data-repos>
       <div className="wbar">
@@ -80,16 +85,23 @@ export function ReposWindow({ repos }: ReposWindowProps) {
         </h3>
       </div>
       {/* data-lenis-prevent: this list scrolls on its own, not with the page. */}
-      <ul className={styles.list} data-lenis-prevent aria-busy={repos === null}>
-        {repos ? (
-          repos.map((repo) => <RepoRow key={repo.name} repo={repo} />)
+      <ul
+        className={styles.list}
+        data-lenis-prevent
+        aria-busy={repos === null && !unreachable}
+      >
+        {repos && repos.length > 0 ? (
+          repos.map((repo) => <RepoRow key={repo.name} repo={repo} now={now} />)
+        ) : repos || unreachable ? (
+          <li className={styles.empty}>
+            {unreachable
+              ? "Couldn't reach GitHub right now."
+              : "No repositories to show."}
+          </li>
         ) : (
-          <>
-            {Array.from({ length: 4 }, (_, i) => (
-              <li key={i} className={styles.skel} aria-hidden="true" />
-            ))}
-            <li className={styles.empty}>Repositories will appear here.</li>
-          </>
+          Array.from({ length: 4 }, (_, i) => (
+            <li key={i} className={styles.skel} aria-hidden="true" />
+          ))
         )}
       </ul>
     </div>

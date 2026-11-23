@@ -16,6 +16,30 @@ export interface RepoSummary {
   url: string | null;
 }
 
+/** What GET /api/github/repos returns. */
+export interface ReposPayload {
+  /** False when no GitHub token is set: there is simply nothing to show. */
+  configured: boolean;
+  repos: RepoSummary[];
+  /** True when GitHub failed and this is the last good data. */
+  stale: boolean;
+  /** True when GitHub failed and there is no last good data. */
+  error: boolean;
+  fetchedAt: string;
+}
+
+/** What GET /api/github/activity returns. */
+export interface ActivityPayload {
+  configured: boolean;
+  /** Push groups, newest first. */
+  pushes: PushGroup[];
+  /** One level (0 to 3) per day for the last ~20 weeks, column by column. */
+  levels: number[] | null;
+  stale: boolean;
+  error: boolean;
+  fetchedAt: string;
+}
+
 export interface PushGroup {
   repo: string;
   private: boolean;

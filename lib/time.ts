@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 const TIME_ZONE = "Asia/Bangkok";
 
@@ -69,6 +69,27 @@ export function formatRelative(
   }
   value = Math.floor(minutes / (60 * 24 * 365));
   return style === "short" ? `${value}y` : `${value} ${value === 1 ? "year" : "years"} ago`;
+}
+
+const NOW_TICK_MS = 30_000;
+let nowValue = 0;
+
+function subscribeNow(onChange: () => void): () => void {
+  nowValue = Date.now();
+  const id = window.setInterval(() => {
+    nowValue = Date.now();
+    onChange();
+  }, NOW_TICK_MS);
+  return () => window.clearInterval(id);
+}
+
+/**
+ * Current time in ms, refreshed every 30 s so relative times stay fresh. It is
+ * 0 during server rendering and the first client render (Cache Components
+ * forbids reading the clock while prerendering), then the real time.
+ */
+export function useNow(): number {
+  return useSyncExternalStore(subscribeNow, () => nowValue, () => 0);
 }
 
 /**

@@ -51,6 +51,13 @@ export const projectsAct = {
   soonPill: "Launching soon",
 } as const;
 
+/**
+ * Descriptions the repositories window may show for PRIVATE repos, by repo
+ * name. Private repos otherwise never expose a description (client repos must
+ * not leak by accident). Empty on purpose: add an entry to opt a repo in.
+ */
+export const privateRepoAllowList: Readonly<Record<string, string>> = {};
+
 /** The "Launching soon" card shown for KaYo Devs until kayodev.com is live. */
 export const soonCard = {
   logo: "KaYo",

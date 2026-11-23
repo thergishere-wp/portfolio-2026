@@ -10,6 +10,7 @@ import {
 import dynamic from "next/dynamic";
 import { contact } from "@/content/socials";
 import { cn } from "@/lib/cn";
+import { startGithubPolling, useGithub } from "@/lib/github-store";
 import { gsap, useGSAP } from "@/lib/gsap";
 import {
   createPhoneRig,
@@ -59,6 +60,10 @@ function AnimatedStage3() {
   const [rig] = useState(createPhoneRig);
   const mounted = useNear(sectionRef, "2500px 0px", true);
   const active = useNear(sectionRef, "200px 0px", false);
+  const { repos, unreachable } = useGithub();
+
+  // Start polling GitHub once the stage is near, not on page load.
+  useEffect(() => (mounted ? startGithubPolling() : undefined), [mounted]);
 
   useGSAP(
     () => {
@@ -151,7 +156,7 @@ function AnimatedStage3() {
           <PhoneCanvas rig={rig} portal={canvasWrapRef} active={active} />
         ) : null}
       </div>
-      <ReposWindow repos={null} />
+      <ReposWindow repos={repos ? repos.repos : null} unreachable={unreachable} />
       <p className={styles.foot} data-a3-foot>
         {contact.emailLead} <a href={`mailto:${contact.email}`}>{contact.email}</a>
       </p>
