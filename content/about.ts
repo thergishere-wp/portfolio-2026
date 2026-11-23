@@ -119,6 +119,8 @@ export interface JourneyItem {
   year: string;
   title: string;
   body: string;
+  /** A small photo card beside the entry. */
+  photo?: { src: string; alt: string; width: number; height: number };
 }
 
 export const journey = {
@@ -132,6 +134,12 @@ export const journey = {
       year: "2019",
       title: "Behind the camera",
       body: "3+ years of freelance video editing for YouTube and weddings, plus design and DJI drone work.",
+      photo: {
+        src: "/img/event-camera.jpg",
+        alt: "Black and white photo of Pasindu in a white sweater and face mask, checking a Canon camera with a flash on the stage of an international culture event",
+        width: 960,
+        height: 960,
+      },
     },
     {
       year: "2020",

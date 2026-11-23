@@ -53,21 +53,31 @@
   width: min(30vw, 520px);
   transform-style: preserve-3d;
 }
+/* The photo is 1000 x 1333 (3:4): the window is sized from that aspect, so
+   cover never crops anything. */
 .portrait {
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 1000 / 1333;
   object-fit: cover;
-  object-position: 50% 30%;
+  object-position: 50% 0;
 }
+/* Two separate items: where and when on the left, the pixel size on the right. */
 .cap {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  gap: 12px;
+  height: 44px;
+  padding: 0 16px;
   font-family: var(--mono);
   font-size: 12px;
+  white-space: nowrap;
   color: var(--ink-3);
+}
+.cap span:first-child {
+  color: var(--ink-2);
 }
 
 /* Shared headings, cards */
@@ -193,6 +203,29 @@
   gap: 16px;
   position: relative;
 }
+/* The Journey entry with a photo card on its right. */
+.tline li.withPhoto {
+  grid-template-columns: 62px 1fr 92px;
+  align-items: start;
+}
+.photoCard {
+  margin: 2px 0 0;
+  width: 92px;
+  aspect-ratio: 1;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 24px -12px rgba(20, 20, 20, 0.4);
+  transform: rotate(2.5deg);
+}
+.photoCard img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 25%;
+}
 .tline li::before {
   content: "";
   position: absolute;
@@ -277,21 +310,26 @@
 .winBody .aboutChips {
   margin-top: 2.6vh;
 }
+/* The grid cell's height (100cqh) minus the window chrome (36px bar, 44px
+   caption, borders) is the photo's height; its width follows from 3:4. */
+.winBody {
+  container-type: size;
+}
 .winBody .pwin {
-  display: flex;
-  flex-direction: column;
-  width: auto;
-  max-width: 400px;
-  min-height: 0;
-  height: 100%;
+  --chrome: 84px;
+  width: min(calc((100cqh - var(--chrome)) * 1000 / 1333), 400px);
   justify-self: end;
-  align-self: stretch;
+  align-self: center;
 }
 .winBody .portrait {
-  flex: 1 1 0;
-  height: 0;
-  min-height: 0;
-  aspect-ratio: auto;
+  width: 100%;
+  height: auto;
+}
+/* On short screens the window is narrow: keep both caption items on one line. */
+.winBody .cap {
+  font-size: 10.5px;
+  padding: 0 12px;
+  gap: 8px;
 }
 
 /* ---------- App windows: the same panels, sized for a window ---------- */

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { journey } from "@/content/about";
 import { cn } from "@/lib/cn";
 import { Panel } from "./Panel";
@@ -21,12 +22,27 @@ export function JourneyPanel() {
       </div>
       <ol className={styles.tline}>
         {journey.items.map((item) => (
-          <li key={item.year} data-rv>
+          <li
+            key={item.year}
+            className={"photo" in item ? styles.withPhoto : undefined}
+            data-rv
+          >
             <span className={styles.yr}>{item.year}</span>
             <div>
               <h3 className={styles.tTitle}>{item.title}</h3>
               <p className={styles.tBody}>{item.body}</p>
             </div>
+            {"photo" in item && item.photo ? (
+              <figure className={styles.photoCard}>
+                <Image
+                  src={item.photo.src}
+                  alt={item.photo.alt}
+                  width={item.photo.width}
+                  height={item.photo.height}
+                  sizes="120px"
+                />
+              </figure>
+            ) : null}
           </li>
         ))}
       </ol>
