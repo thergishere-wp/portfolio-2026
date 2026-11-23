@@ -17,7 +17,10 @@ import { NowPanel } from "./about/NowPanel";
 import { ToolkitPanel } from "./about/ToolkitPanel";
 import { ProjectsAct } from "./projects/ProjectsAct";
 import { ProjectsStatic } from "./projects/ProjectsStatic";
-import { appendProjectsAct } from "./projects/projectsTimeline";
+import {
+  appendProjectsAct,
+  type ProjectsProgress,
+} from "./projects/projectsTimeline";
 import styles from "./Stage1.module.css";
 
 const Panels = () => (
@@ -35,8 +38,12 @@ function AnimatedStage() {
   const sectionRef = useRef<HTMLElement>(null);
   const imacRef = useRef<HTMLDivElement>(null);
   const { layout, layoutRef } = useStageLayout(imacRef);
-  // The project the timeline has revealed; -1 while the window is locked.
-  const [current, setCurrent] = useState(-1);
+  // The project the timeline has revealed (-1 while locked) and whether the
+  // projects act is near enough for its previews to start loading.
+  const [progress, setProgress] = useState<ProjectsProgress>({
+    current: -1,
+    near: false,
+  });
 
   useGSAP(
     () => {
@@ -53,7 +60,7 @@ function AnimatedStage() {
         timeline,
         section,
         startTime: endTime,
-        onCurrentChange: setCurrent,
+        onProgress: setProgress,
       });
 
       const offAbout = registerScrollTarget("about", timeline, "about");
@@ -88,7 +95,7 @@ function AnimatedStage() {
           </div>
         </ImacScreen>
       </Imac>
-      <ProjectsAct current={current} />
+      <ProjectsAct current={progress.current} near={progress.near} />
     </section>
   );
 }

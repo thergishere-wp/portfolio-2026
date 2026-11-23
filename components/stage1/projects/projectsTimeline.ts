@@ -6,9 +6,21 @@ interface ProjectsTimelineParts {
   section: HTMLElement;
   /** Where the About act ended. */
   startTime: number;
-  /** Called when the revealed project changes (-1 while locked). */
-  onCurrentChange: (index: number) => void;
+  /**
+   * Called when the revealed project changes (-1 while locked) or when the
+   * scroll story comes near the act, so previews load only once they are close.
+   */
+  onProgress: (progress: ProjectsProgress) => void;
 }
+
+export interface ProjectsProgress {
+  current: number;
+  /** The projects act is close enough to start loading its previews. */
+  near: boolean;
+}
+
+/** Seconds of timeline before the act at which previews may start loading. */
+const PRELOAD_LEAD = 2.2;
 
 /**
  * Appends the projects act (timings are the prototype's). For each project,
@@ -24,7 +36,7 @@ export function appendProjectsAct({
   timeline: tl,
   section,
   startTime,
-  onCurrentChange,
+  onProgress,
 }: ProjectsTimelineParts): void {
   const $ = gsap.utils.selector(section);
   const out = { opacity: 1, y: 0, ease: "power2.out" };
@@ -117,17 +129,21 @@ export function appendProjectsAct({
 
   tl.to({}, { duration: 0.5 }, t);
 
-  // Tell React which project is revealed, only when it changes.
-  let last = -1;
+  // Tell React which project is revealed and whether the act is near, only
+  // when either changes.
+  let lastIndex = -1;
+  let lastNear = false;
   tl.eventCallback("onUpdate", () => {
     const now = tl.time();
     let index = -1;
     marks.forEach((mark, i) => {
       if (now >= mark) index = i;
     });
-    if (index !== last) {
-      last = index;
-      onCurrentChange(index);
+    const near = now >= startTime - PRELOAD_LEAD;
+    if (index !== lastIndex || near !== lastNear) {
+      lastIndex = index;
+      lastNear = near;
+      onProgress({ current: index, near });
     }
   });
 }

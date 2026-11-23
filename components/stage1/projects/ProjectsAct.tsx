@@ -20,7 +20,14 @@ interface ViewerState {
  * (-1 while locked); the timeline drives it. Only the current and the next
  * preview are mounted, so at most two frames are alive at once.
  */
-export function ProjectsAct({ current }: { current: number }) {
+export function ProjectsAct({
+  current,
+  near,
+}: {
+  current: number;
+  /** The scroll story is close to this act: previews may start loading. */
+  near: boolean;
+}) {
   const windowRef = useRef<HTMLDivElement>(null);
   const [viewer, setViewer] = useState<ViewerState | null>(null);
 
@@ -57,7 +64,9 @@ export function ProjectsAct({ current }: { current: number }) {
             <ProjectPreview
               key={project.id}
               project={project}
-              mounted={i === current || i === current + 1}
+              // Nothing loads until the act is near, so no third-party page is
+              // fetched at page load. Then only the current and the next one.
+              mounted={near && (i === current || i === current + 1)}
             />
           ))}
         </ProjectWindow>
