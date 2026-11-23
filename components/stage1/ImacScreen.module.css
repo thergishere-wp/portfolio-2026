@@ -7,7 +7,9 @@
   height: var(--ch);
   transform: scale(var(--s));
   transform-origin: 0 0;
-  overflow: hidden;
+  /* clip, not hidden: a clipped box can never be scrolled by focus or
+     scrollIntoView, which would shift the whole desktop. */
+  overflow: clip;
   background: radial-gradient(
     90% 80% at 25% 15%,
     #fff 0%,
@@ -41,5 +43,5 @@
   top: var(--sy);
   width: var(--vw);
   height: var(--vh);
-  overflow: hidden;
+  overflow: clip;
 }

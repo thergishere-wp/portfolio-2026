@@ -50,7 +50,7 @@
   top: var(--b);
   width: var(--ws);
   height: var(--hs);
-  overflow: hidden;
+  overflow: clip;
   border-radius: 3px;
   background: #0d0d0f;
 }

@@ -6,11 +6,15 @@ import { ChipIcon } from "./ChipIcon";
 import { Panel } from "./Panel";
 import styles from "./panels.module.css";
 
-export function AboutPanel() {
+/**
+ * About. Plain, it is a full-viewport section (the reduced-motion layout).
+ * `windowed`, it is the window that is open by default on the iMac desktop.
+ */
+export function AboutPanel({ windowed = false }: { windowed?: boolean }) {
   const { portrait } = about;
 
-  return (
-    <Panel id="about" label="About" className={styles.about}>
+  const content = (
+    <>
       <div>
         <p className="eyebrow" data-rv>
           {about.eyebrow}
@@ -59,6 +63,32 @@ export function AboutPanel() {
           <span>{portrait.captionRight}</span>
         </div>
       </div>
-    </Panel>
+    </>
+  );
+
+  if (!windowed) {
+    return (
+      <Panel id="about" label="About" className={styles.about}>
+        {content}
+      </Panel>
+    );
+  }
+
+  return (
+    <section
+      id="about"
+      data-panel="about"
+      data-about-window
+      aria-label="About"
+      className={cn("mwin", styles.winAbout)}
+    >
+      <div className="mwin-bar" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+        <span className="mwin-title">About — Pasindu</span>
+      </div>
+      <div className={styles.winBody}>{content}</div>
+    </section>
   );
 }

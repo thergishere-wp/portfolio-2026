@@ -1,7 +1,8 @@
 .stage {
   position: relative;
   height: 100vh;
-  overflow: hidden;
+  /* clip, not hidden: focus or scrollIntoView can't scroll the pinned stage. */
+  overflow: clip;
   z-index: 1;
   perspective: 1600px;
 }
@@ -15,14 +16,6 @@
 .deskMark {
   font-size: 17vw;
   opacity: 0;
-}
-.track {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  z-index: 2;
-  will-change: transform;
 }
 
 /* Reduced motion: no iMac, no pinning. Each panel is a plain section. */

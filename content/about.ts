@@ -23,6 +23,36 @@ export const menuBar = {
   city: "Bangkok",
 } as const;
 
+export type AppId = "edu" | "jour" | "now" | "kit" | "cv";
+
+/** The dock on the About desktop: one icon per app window. */
+export const dock = {
+  label: "Apps",
+  hint: "Open the apps in the dock",
+  items: [
+    { id: "edu", label: "Education", title: "Education" },
+    { id: "jour", label: "Journey", title: "Journey" },
+    { id: "now", label: "Now", title: "Right now" },
+    { id: "kit", label: "Toolkit", title: "Toolkit" },
+    { id: "cv", label: "Résumé", title: "Résumé" },
+  ],
+} as const satisfies {
+  label: string;
+  hint: string;
+  items: readonly { id: AppId; label: string; title: string }[];
+};
+
+export const resume = {
+  eyebrow: "06 — Résumé",
+  titleLead: "The whole story,",
+  titleEmphasis: "one page.",
+  note: "Education, roles and the stack I work in, on a single PDF.",
+  cta: "Download CV (PDF)",
+  /** Replace public/cv.pdf with the real file; the link stays the same. */
+  href: "/cv.pdf",
+  fileName: "Pasindu-Walakuluarachchi-CV.pdf",
+} as const;
+
 export const about = {
   eyebrow: "01 — Hello, I'm",
   nameFirst: "Pasindu Mahen",

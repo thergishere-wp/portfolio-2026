@@ -7,13 +7,20 @@ interface AboutTimelineParts {
   layoutRef: { readonly current: StageLayout };
 }
 
-/** Panels the screen scrolls through after About, in order. */
-const PANELS = ["edu", "jour", "now", "kit"] as const;
+/** Pixels of scroll per timeline unit, as a fraction of the viewport height. */
+const SCROLL_PER_UNIT = 0.6;
+/**
+ * Timeline units the desktop stays pinned for: about one viewport of scroll
+ * (1 / SCROLL_PER_UNIT), long enough to open the apps in the dock.
+ */
+const DESKTOP_HOLD = 1.7;
 
 /**
- * The pinned, scrubbed Stage 1 timeline (timings are the prototype's):
- *  1. zoom into the display, RG blurs out, menu bar and About come in
- *  2. scroll inside the screen through five panels
+ * The pinned, scrubbed Stage 1 timeline (timings are the prototype's, except
+ * the old five-panel scroll track, which is now a single desktop stop):
+ *  1. zoom into the display, RG blurs out, menu bar, About window and dock
+ *     come in
+ *  2. hold on the desktop for about one viewport of scroll
  *  3. zoom out to the back of the room, the screen returns to a faint RG
  * Every size-dependent value is a function, re-read on refresh.
  */
@@ -30,7 +37,7 @@ export function buildAboutTimeline({
     scrollTrigger: {
       trigger: section,
       start: "top top",
-      end: () => "+=" + window.innerHeight * tl.duration() * 0.6,
+      end: () => "+=" + window.innerHeight * tl.duration() * SCROLL_PER_UNIT,
       scrub: 1,
       pin: true,
       invalidateOnRefresh: true,
@@ -61,39 +68,33 @@ export function buildAboutTimeline({
       0.85,
     )
     .fromTo(
-      $('[data-panel="about"] [data-rv]'),
-      { opacity: 0, y: 50 },
-      { ...out, stagger: 0.07, duration: 0.5 },
+      $("[data-about-window]"),
+      { autoAlpha: 0, y: 70, scale: 0.96 },
+      { ...out, autoAlpha: 1, scale: 1, duration: 0.7 },
       0.85,
     )
     .fromTo(
-      $("[data-rv-win]"),
-      { opacity: 0, y: 90, rotateX: -14, scale: 0.95 },
-      { ...out, rotateX: 0, scale: 1, duration: 0.7 },
-      0.95,
+      $('[data-panel="about"] [data-rv], [data-rv-win]'),
+      { opacity: 0, y: 40 },
+      { ...out, stagger: 0.07, duration: 0.5 },
+      1.0,
+    )
+    .fromTo(
+      $("[data-dock]"),
+      { autoAlpha: 0, y: 40 },
+      { ...out, autoAlpha: 1, duration: 0.6 },
+      1.3,
     )
     .addLabel("about", 1.6);
 
-  let t = 2.2;
-  PANELS.forEach((id, i) => {
-    tl.to(
-      $("[data-track]"),
-      {
-        y: () => -window.innerHeight * (i + 1),
-        duration: 1,
-        ease: "power2.inOut",
-      },
-      t,
-    ).fromTo(
-      $(`[data-panel="${id}"] [data-rv]`),
-      { opacity: 0, y: 60 },
-      { ...out, stagger: 0.05, duration: 0.55 },
-      t + 0.35,
-    );
-    t += 1.55;
-  });
+  // One short stop on the desktop: the scroll does nothing here but pass time.
+  const t = 1.6 + DESKTOP_HOLD;
 
-  tl.to($("[data-track], [data-menubar]"), { opacity: 0, duration: 0.5 }, t)
+  tl.to(
+    $("[data-desktop], [data-menubar]"),
+    { autoAlpha: 0, duration: 0.5 },
+    t,
+  )
     .to(
       $("[data-screen-mark]"),
       { opacity: 0.35, scale: 1, filter: "blur(4px)", duration: 0.5 },

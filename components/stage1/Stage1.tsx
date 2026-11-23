@@ -15,6 +15,7 @@ import { EducationPanel } from "./about/EducationPanel";
 import { JourneyPanel } from "./about/JourneyPanel";
 import { NowPanel } from "./about/NowPanel";
 import { ToolkitPanel } from "./about/ToolkitPanel";
+import { Desktop } from "./desktop/Desktop";
 import { ProjectsAct } from "./projects/ProjectsAct";
 import { ProjectsStatic } from "./projects/ProjectsStatic";
 import {
@@ -33,7 +34,7 @@ const Panels = () => (
   </>
 );
 
-/** The pinned iMac story: About, Education, Journey, Right now, Toolkit. */
+/** The pinned iMac story: the About desktop with its dock, then Projects. */
 function AnimatedStage() {
   const sectionRef = useRef<HTMLElement>(null);
   const imacRef = useRef<HTMLDivElement>(null);
@@ -90,9 +91,7 @@ function AnimatedStage() {
             />
           </div>
           <MenuBar />
-          <div className={styles.track} data-track>
-            <Panels />
-          </div>
+          <Desktop />
         </ImacScreen>
       </Imac>
       <ProjectsAct current={progress.current} near={progress.near} />
