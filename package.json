@@ -14,7 +14,8 @@
     "mock:github": "tsx scripts/mock-github.ts",
     "og": "tsx scripts/capture-og.ts",
     "check:phone": "tsx scripts/phone-corners.ts",
-    "check:continuity": "tsx scripts/check-continuity.ts"
+    "check:continuity": "tsx scripts/check-continuity.ts",
+    "check:3d": "tsx scripts/check-3d.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

@@ -17,11 +17,11 @@ const height = Number(process.argv[5] ?? 900);
 const ZOOM = 4;
 const CROP = 90;
 
-/** Progress through the pinned phone stage for each pose. */
+/** Scroll position (in viewport heights) of each pose of the cover screen. */
 const POSES = [
-  { name: "upright", progress: 0.2 },
-  { name: "moved-left", progress: 0.5 },
-  { name: "landscape", progress: 0.9 },
+  { name: "upright", vh: 5.4 },
+  { name: "beside-repos", vh: 6.0 },
+  { name: "landscape", vh: 6.6 },
 ] as const;
 
 interface Box {
@@ -62,12 +62,8 @@ async function main(): Promise<void> {
   await page.waitForTimeout(800);
 
   for (const pose of POSES) {
-    await page.evaluate((progress) => {
-      const spacer = document.querySelectorAll(".pin-spacer")[1];
-      const top = spacer.getBoundingClientRect().top + window.scrollY;
-      const length = spacer.getBoundingClientRect().height - window.innerHeight;
-      window.scrollTo(0, top + progress * length);
-    }, pose.progress);
+    // A string, not a function: tsx rewrites functions in a way the page cannot run.
+    await page.evaluate(`window.scrollTo(0, ${pose.vh} * window.innerHeight)`);
     // Lenis and the scrub both lag, and software WebGL renders slowly.
     await page.waitForTimeout(9000);
 

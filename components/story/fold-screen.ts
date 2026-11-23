@@ -61,16 +61,39 @@ function drawSoonCard(): CanvasTexture {
   return texture;
 }
 
+/** A plain stand-in for a shot that could not be loaded: the device still appears. */
+function drawPlaceholder(name: string): CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 392;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("no 2d context");
+  ctx.fillStyle = "#1c1c20";
+  ctx.fillRect(0, 0, 512, 392);
+  ctx.fillStyle = "rgba(243,241,236,.7)";
+  ctx.font = "500 30px system-ui, sans-serif";
+  ctx.fillText(name, 32, 72);
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  return texture;
+}
+
 let cache: Promise<Texture[]> | null = null;
 
-/** Every project's inner-screen texture, loaded once and shared. */
+/** Every project's inner-screen texture, loaded once and shared. Never rejects. */
 export function loadFoldTextures(): Promise<Texture[]> {
   if (cache) return cache;
   const loader = new TextureLoader();
   cache = Promise.all(
-    projects.map(async (_, i) => {
+    projects.map(async (project, i) => {
       const src = foldShot(i);
-      const texture = src ? await loader.loadAsync(src) : drawSoonCard();
+      let texture: Texture;
+      try {
+        texture = src ? await loader.loadAsync(src) : drawSoonCard();
+      } catch {
+        // A failed request (offline, throttled) must not take the device down.
+        texture = drawPlaceholder(project.name);
+      }
       texture.colorSpace = SRGBColorSpace;
       texture.anisotropy = 8;
       texture.minFilter = LinearMipmapLinearFilter;

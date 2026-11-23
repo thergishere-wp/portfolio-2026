@@ -93,7 +93,8 @@ function Device(props: DeviceProps) {
     const shown = easeOutBack(Math.min(1, Math.max(0, rig.show)));
     const bob = Math.sin(clock.elapsedTime * 1.1) * 0.006 * viewport.height * (1 - rig.shut);
 
-    o.visible = rig.show > 0.001;
+    // Never hidden: while the device is not shown it is scaled to nothing, so
+    // the shaders still compile on the first frame, long before Projects.
     o.position.set(
       rig.x * viewport.width,
       rig.y * viewport.height + bob - (1 - rig.show) * 0.05 * viewport.height,

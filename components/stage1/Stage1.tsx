@@ -49,6 +49,7 @@ declare global {
   interface Window {
     /** Set by `?debug` (see AnimatedStage). */
     __foldRig?: FoldRig;
+    __foldState?: { canvasOn: boolean; ready: boolean; contextLost: boolean };
   }
 }
 
@@ -102,7 +103,23 @@ function AnimatedStage({ onUnsupported }: { onUnsupported: () => void }) {
   });
   const [canvasOn, setCanvasOn] = useState(false);
   const [ready, setReady] = useState(false);
+  // Keep rendering for a moment once the real model is up, so its shaders
+  // compile and its first frames are drawn while it is still hidden.
+  const [warm, setWarm] = useState(false);
   const [contextLost, setContextLost] = useState(false);
+
+  useEffect(() => {
+    if (!warm) return;
+    const id = window.setTimeout(() => setWarm(false), 2000);
+    return () => window.clearTimeout(id);
+  }, [warm]);
+
+  // `?debug` also exposes the scene's state, for the reliability test.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("debug")) {
+      window.__foldState = { canvasOn, ready, contextLost };
+    }
+  }, [canvasOn, ready, contextLost]);
   const [viewer, setViewer] = useState<ViewerState | null>(null);
 
   // `?debug` exposes the rig so a script can freeze any pose or transition.
@@ -124,7 +141,10 @@ function AnimatedStage({ onUnsupported }: { onUnsupported: () => void }) {
         onUnsupported();
         return;
       }
+      // Everything the scene needs, during idle time long before Projects:
+      // the textures, the scene's code, then the canvas itself.
       void loadFoldTextures();
+      void import("../story/StoryCanvas");
       setCanvasOn(true);
     });
   }, [intro.unlocked, canvasOn, onUnsupported]);
@@ -243,11 +263,14 @@ function AnimatedStage({ onUnsupported }: { onUnsupported: () => void }) {
           <StoryCanvas
             rig={rig}
             portal={canvasWrapRef}
-            active={progress.near && inView}
+            active={(progress.near && inView) || warm}
             current={progress.current}
             near={progress.near}
             onOpenProject={openProject}
-            onReady={() => setReady(true)}
+            onReady={() => {
+              setReady(true);
+              setWarm(true);
+            }}
             onContext={setContextLost}
           />
         ) : null}
