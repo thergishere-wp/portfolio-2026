@@ -2,8 +2,12 @@
 
 import { useRef, useState } from "react";
 import { RgMark } from "@/components/chrome/RgMark";
-import { useGSAP } from "@/lib/gsap";
+import { projects } from "@/content/projects";
+import { ScrollTrigger, useGSAP } from "@/lib/gsap";
+import { stage1Rests } from "@/lib/scroll-budget";
 import { registerScrollTarget } from "@/lib/scroll-targets";
+import { registerSnapSource } from "@/lib/snap-points";
+import { StepSequencer } from "@/lib/step-sequencer";
 import { useStageLayout } from "@/lib/useStageLayout";
 import { usePrefersReducedMotion } from "@/lib/useReducedMotion";
 import { buildAboutTimeline } from "./aboutTimeline";
@@ -19,7 +23,8 @@ import { Desktop } from "./desktop/Desktop";
 import { ProjectsAct } from "./projects/ProjectsAct";
 import { ProjectsStatic } from "./projects/ProjectsStatic";
 import {
-  appendProjectsAct,
+  appendProjectsSteps,
+  progressAt,
   type ProjectsProgress,
 } from "./projects/projectsTimeline";
 import styles from "./Stage1.module.css";
@@ -52,23 +57,53 @@ function AnimatedStage() {
       const imac = imacRef.current;
       if (!section || !imac) return;
 
-      const { timeline, endTime } = buildAboutTimeline({
+      // Camera moves are scrubbed; every reveal is a step (see StepSequencer).
+      const rests = stage1Rests(projects.length);
+      const parts = buildAboutTimeline({
         section,
         imac,
         layoutRef,
+        length: rests[rests.length - 1],
       });
-      appendProjectsAct({
-        timeline,
-        section,
-        startTime: endTime,
-        onProgress: setProgress,
+      appendProjectsSteps(section, parts.steps);
+      const { timeline, steps } = parts;
+
+      const startOf = (): number => timeline.scrollTrigger?.start ?? 0;
+      const px = (vh: number): number => startOf() + vh * window.innerHeight;
+      const thresholds = (): number[] => steps.map((s) => px(s.at));
+
+      let nearSeen = false;
+      const sequencer = new StepSequencer(steps, (index) => {
+        const next = progressAt(index);
+        nearSeen ||= next.near;
+        setProgress({ current: next.current, near: nearSeen });
+      });
+      const evaluate = (scroll: number, instant: boolean): void => {
+        const target = StepSequencer.indexAt(scroll, thresholds());
+        if (instant) sequencer.sync(target);
+        else sequencer.goTo(target);
+      };
+
+      // Follows the scroll everywhere (also before and after the pin), so the
+      // step state is always a function of the scroll position.
+      const follower = ScrollTrigger.create({
+        start: 0,
+        end: "max",
+        onUpdate: (self) => evaluate(self.scroll(), false),
+        onRefresh: (self) => evaluate(self.scroll(), true),
       });
 
+      // The labels the side nav jumps to: the About desktop and the Projects title.
+      timeline.addLabel("work", rests[3]);
       const offAbout = registerScrollTarget("about", timeline, "about");
       const offWork = registerScrollTarget("work", timeline, "work");
+      const offSnap = registerSnapSource(() => rests.map(px));
       return () => {
+        follower.kill();
+        sequencer.kill();
         offAbout();
         offWork();
+        offSnap();
       };
     },
     { scope: sectionRef, dependencies: [] },

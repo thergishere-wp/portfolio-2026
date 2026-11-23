@@ -11,7 +11,10 @@ import dynamic from "next/dynamic";
 import { contact } from "@/content/socials";
 import { cn } from "@/lib/cn";
 import { startGithubPolling, useGithub } from "@/lib/github-store";
-import { gsap, useGSAP } from "@/lib/gsap";
+import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
+import { STAGE3_RESTS, STEP_LEAD } from "@/lib/scroll-budget";
+import { registerSnapSource } from "@/lib/snap-points";
+import { StepSequencer, type Step } from "@/lib/step-sequencer";
 import {
   createPhoneRig,
   landscapeScale,
@@ -62,12 +65,9 @@ function hasWebGL(): boolean {
   return webglSupport;
 }
 
-/**
- * The timeline is 7 units long and 0.6 viewport heights of scroll pay for each,
- * so the pinned stage is 4.2 viewports (it was 7, which is 40% less).
- */
-const TIMELINE_UNITS = 7;
-const SCROLL_PER_UNIT = 0.6;
+/** The pinned stage is 2.0 viewports of scroll (see lib/scroll-budget.ts). */
+const LENGTH = STAGE3_RESTS[STAGE3_RESTS.length - 1];
+const enterAt = (rest: number): number => rest + STEP_LEAD;
 
 /** The pinned iPhone story: Activity, then Contact. */
 function AnimatedStage3({ onUnsupported }: { onUnsupported: () => void }) {
@@ -99,69 +99,110 @@ function AnimatedStage3({ onUnsupported }: { onUnsupported: () => void }) {
         scrollTrigger: {
           trigger: section,
           start: "top top",
-          end: () => "+=" + window.innerHeight * TIMELINE_UNITS * SCROLL_PER_UNIT,
-          scrub: 1,
+          end: () => "+=" + window.innerHeight * tl.duration(),
+          scrub: true,
           pin: true,
+          anticipatePin: 1,
           invalidateOnRefresh: true,
         },
       });
 
-      // 1-2. Stand upright, facing the camera, showing the RG logo.
+      const [toActivity, activityEnd, toContact] = STAGE3_RESTS;
+
+      // Camera only (scrubbed): the phone stands upright, moves left beside
+      // the repositories, then comes back and turns to landscape.
       tl.to(
         rig,
-        { rx: 0, ry: 0, rz: 0, scale: 1, y: 0, duration: 1.5, ease: "power3.inOut" },
+        { rx: 0, ry: 0, rz: 0, scale: 1, y: 0, duration: 0.55, ease: "power3.inOut" },
         0,
       )
-        .to(rig, { shadow: 1, duration: 0.8 }, 0.7)
-        // 3. Move left; the screen cross-fades to the app; repos slide in.
-        .to(rig, { x: PHONE_X_WITH_REPOS, duration: 1, ease: "power2.inOut" }, 1.7)
-        .to(rig, { logo: 0, duration: 0.35 }, 1.95)
-        .to(rig, { app: 1, duration: 0.45 }, 2.1)
-        .fromTo(
-          $("[data-repos]"),
-          { autoAlpha: 0, x: 120 },
-          { autoAlpha: 1, x: 0, duration: 0.9, ease: "power2.out" },
-          2.0,
-        )
-        // 4. A short hold, to use the tabs and scroll the repos list.
-        .addLabel("activity", 3.0)
-        .to({}, { duration: 1 }, 3.0);
-
-      // 5. Repos leave; the phone returns to centre and turns to landscape.
-      // From here to the contact label is about one viewport of scroll.
-      const t = 4;
-      tl.to($("[data-repos]"), { autoAlpha: 0, x: 120, duration: 0.6, ease: "power2.in" }, t)
-        .to(rig, { x: 0, duration: 1, ease: "power2.inOut" }, t + 0.2)
-        .to(rig, { shadow: 0, duration: 0.8 }, t + 0.2)
+        .to(rig, { shadow: 1, duration: 0.4 }, 0.25)
+        .to(rig, { x: PHONE_X_WITH_REPOS, duration: 0.45, ease: "power2.inOut" }, 0.35)
+        .to(rig, { x: 0, duration: 0.45, ease: "power2.inOut" }, activityEnd + 0.05)
+        .to(rig, { shadow: 0, duration: 0.4 }, activityEnd + 0.05)
         .to(
           rig,
           {
             rz: -Math.PI / 2,
             scale: () => landscapeScale(window.innerWidth, window.innerHeight),
-            duration: 1.1,
+            duration: 0.55,
             ease: "power3.inOut",
           },
-          t + 0.4,
+          activityEnd + 0.05,
         )
-        .to(rig, { app: 0, duration: 0.35 }, t + 0.5)
-        .to(rig, { social: 1, duration: 0.45 }, t + 0.9)
-        .fromTo($("[data-a3c]"), { opacity: 0, y: -20 }, { ...out, duration: 0.5 }, t + 1.1)
-        // autoAlpha: hidden (and so unfocusable) until it appears, since it holds a link.
-        .fromTo(
-          $("[data-a3-foot]"),
-          { autoAlpha: 0, y: 20 },
-          { autoAlpha: 1, y: 0, ease: "power2.out", duration: 0.5 },
-          t + 1.2,
-        )
-        .to(rig, { apps: 1, duration: 0.8 }, t + 1)
-        .addLabel("contact", t + 1.8)
-        .to({}, { duration: 1.2 }, t + 1.8);
+        .addLabel("activity", activityEnd)
+        .addLabel("contact", toContact)
+        .to({}, { duration: 0 }, LENGTH);
+
+      // Content (time-based steps, each played in full when entered).
+      const steps: Step[] = [
+        // 0. The screen crossfades from the logo to the app as the phone arrives.
+        {
+          at: toActivity * 0.6,
+          tl: gsap
+            .timeline({ paused: true })
+            .to(rig, { logo: 0, duration: 0.35 }, 0)
+            .to(rig, { app: 1, duration: 0.45 }, 0.15),
+        },
+        // 1. The activity hold: the repositories window slides in.
+        {
+          at: enterAt(toActivity),
+          tl: gsap
+            .timeline({ paused: true })
+            .fromTo(
+              $("[data-repos]"),
+              { autoAlpha: 0, x: 120 },
+              { autoAlpha: 1, x: 0, duration: 0.8, ease: "power2.out" },
+              0,
+            ),
+        },
+        // 2. Contact: the repos leave, the screen becomes the socials.
+        {
+          at: enterAt(activityEnd),
+          tl: gsap
+            .timeline({ paused: true })
+            .to($("[data-repos]"), { autoAlpha: 0, x: 120, duration: 0.5, ease: "power2.in" }, 0)
+            .to(rig, { app: 0, duration: 0.35 }, 0.1)
+            .to(rig, { social: 1, duration: 0.45 }, 0.3)
+            .to(rig, { apps: 1, duration: 0.8 }, 0.35)
+            .fromTo($("[data-a3c]"), { opacity: 0, y: -20 }, { ...out, duration: 0.5 }, 0.3)
+            // autoAlpha: hidden (and so unfocusable) until it appears, since it holds a link.
+            .fromTo(
+              $("[data-a3-foot]"),
+              { autoAlpha: 0, y: 20 },
+              { autoAlpha: 1, y: 0, ease: "power2.out", duration: 0.5 },
+              0.4,
+            ),
+        },
+      ];
+
+      const startOf = (): number => tl.scrollTrigger?.start ?? 0;
+      const px = (vh: number): number => startOf() + vh * window.innerHeight;
+      const sequencer = new StepSequencer(steps);
+      const evaluate = (scroll: number, instant: boolean): void => {
+        const target = StepSequencer.indexAt(
+          scroll,
+          steps.map((s) => px(s.at)),
+        );
+        if (instant) sequencer.sync(target);
+        else sequencer.goTo(target);
+      };
+      const follower = ScrollTrigger.create({
+        start: 0,
+        end: "max",
+        onUpdate: (self) => evaluate(self.scroll(), false),
+        onRefresh: (self) => evaluate(self.scroll(), true),
+      });
 
       const offActivity = registerScrollTarget("activity", tl, "activity");
       const offContact = registerScrollTarget("contact", tl, "contact");
+      const offSnap = registerSnapSource(() => STAGE3_RESTS.map(px));
       return () => {
+        follower.kill();
+        sequencer.kill();
         offActivity();
         offContact();
+        offSnap();
       };
     },
     { scope: sectionRef, dependencies: [rig] },

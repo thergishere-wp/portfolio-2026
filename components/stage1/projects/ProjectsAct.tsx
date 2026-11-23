@@ -67,6 +67,7 @@ export function ProjectsAct({
               // Nothing loads until the act is near, so no third-party page is
               // fetched at page load. Then only the current and the next one.
               mounted={near && (i === current || i === current + 1)}
+              near={near}
             />
           ))}
         </ProjectWindow>

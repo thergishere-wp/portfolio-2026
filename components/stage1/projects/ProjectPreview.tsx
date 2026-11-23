@@ -17,6 +17,9 @@ export const FRAME_SANDBOX =
 function LiveFrame({ url, title }: { url: string; title: string }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
+  // The screenshot poster sits underneath until the page has loaded, so a
+  // remount (scrolling back) never flashes a blank white frame.
+  const [loaded, setLoaded] = useState(false);
 
   useLayoutEffect(() => {
     const box = boxRef.current;
@@ -41,8 +44,15 @@ function LiveFrame({ url, title }: { url: string; title: string }) {
         sandbox={FRAME_SANDBOX}
         referrerPolicy="no-referrer"
         tabIndex={-1}
-        // Runtime value: the scale that fits the 1440x900 page to the window.
-        style={{ transform: `scale(${scale})`, visibility: scale ? "visible" : "hidden" }}
+        onLoad={() => setLoaded(true)}
+        // Runtime values: the scale that fits the 1440x900 page to the window,
+        // and the fade-in over the poster once the page has loaded.
+        style={{
+          transform: `scale(${scale})`,
+          visibility: scale ? "visible" : "hidden",
+          opacity: loaded ? 1 : 0,
+          transition: "opacity .4s",
+        }}
       />
     </div>
   );
@@ -50,8 +60,10 @@ function LiveFrame({ url, title }: { url: string; title: string }) {
 
 interface ProjectPreviewProps {
   project: Project;
-  /** Only the current and the next project are mounted. */
+  /** Only the current and the next project's live page is mounted. */
   mounted: boolean;
+  /** The act is near: every project shows its (cheap) screenshot poster. */
+  near: boolean;
 }
 
 /**
@@ -59,24 +71,29 @@ interface ProjectPreviewProps {
  * the site allows framing, otherwise the captured screenshot, or the
  * "Launching soon" card when the site is not live. GSAP fades the wrapper.
  */
-export function ProjectPreview({ project, mounted }: ProjectPreviewProps) {
+export function ProjectPreview({ project, mounted, near }: ProjectPreviewProps) {
   let content: ReactNode = null;
 
   if (project.status === "soon") {
     content = <LaunchingSoonCard />;
-  } else if (mounted && project.frameable && project.frameUrl) {
+  } else {
+    // The poster is always there once the act is near, and the live page fades
+    // in over it, so the frame looks the same whichever way it was reached.
     content = (
-      <LiveFrame url={project.frameUrl} title={`${project.name} homepage`} />
-    );
-  } else if (mounted && project.shot) {
-    content = (
-      <Image
-        className={styles.shot}
-        src={project.shot}
-        alt={`${project.name} homepage`}
-        fill
-        sizes="45vw"
-      />
+      <>
+        {near && project.shot ? (
+          <Image
+            className={styles.shot}
+            src={project.shot}
+            alt={`${project.name} homepage`}
+            fill
+            sizes="45vw"
+          />
+        ) : null}
+        {mounted && project.frameable && project.frameUrl ? (
+          <LiveFrame url={project.frameUrl} title={`${project.name} homepage`} />
+        ) : null}
+      </>
     );
   }
 
