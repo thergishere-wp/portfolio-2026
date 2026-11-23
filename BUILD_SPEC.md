@@ -33,18 +33,20 @@ app/
   api/github/activity/route.ts
   api/github/repos/route.ts
 components/
-  chrome/  Room.tsx Grain.tsx Cursor.tsx SideNav.tsx ScrollHint.tsx
-  intro/   Intro.tsx              (RG preloader → iMac outline → hand-off)
+  chrome/  Room.tsx Dust.tsx Grain.tsx Cursor.tsx SideNav.tsx ScrollHint.tsx
+  intro/   Intro.tsx              (RG on the page → iMac outline → RG inside the screen)
   stage1/  Stage1.tsx Imac.tsx ImacScreen.tsx MenuBar.tsx
            about/ AboutPanel.tsx EducationPanel.tsx JourneyPanel.tsx NowPanel.tsx ToolkitPanel.tsx
+           desktop/ Desktop.tsx Dock.tsx DockIcons.tsx AppWindow.tsx ResumeApp.tsx
            projects/ ProjectsAct.tsx ProjectList.tsx ProjectWindow.tsx ProjectPreview.tsx OverviewCard.tsx ProjectViewer.tsx Lock.tsx
-  stage3/  Stage3.tsx PhoneCanvas.tsx PhoneModel.tsx PhoneScreen.tsx
-           screen/ LogoScreen.tsx AppScreen.tsx ActivityFeed.tsx ContributionGrid.tsx LocationMap.tsx SocialsScreen.tsx
+  stage3/  Stage3.tsx PhoneCanvas.tsx PhoneModel.tsx PhoneScreen.tsx phone-geometry.ts
+           screen/ LogoScreen.tsx AppScreen.tsx SummaryScreen.tsx ActivityRings.tsx TimeChart.tsx
+                   MostActive.tsx ActivityFeed.tsx LocationMap.tsx SocialsScreen.tsx
            ReposWindow.tsx
 content/   about.ts projects.ts socials.ts   (all copy lives here, typed)
-lib/       useStageLayout.ts  smooth-scroll.tsx  github.ts  time.ts
-public/    img/portrait.jpg  models/iphone.glb  shots/*.png
-scripts/   capture-shots.ts
+lib/       useStageLayout.ts  smooth-scroll.tsx  github.ts  time.ts  activity-stats.ts  room-light.ts
+public/    img/portrait.jpg  cv.pdf (a placeholder: replace it with the real CV)  shots/*.png
+scripts/   capture-shots.ts  check-frameable.ts  phone-corners.ts
 ```
 
 Keep components small with one job each. All copy from the prototype moves into `content/*.ts`.
@@ -52,6 +54,10 @@ Keep components small with one job each. All copy from the prototype moves into 
 ## 3. Global behaviour
 
 - **Room background** (fixed): the gradients, floor, cove, window-light "sun" with its mask, vignette and grain, exactly as in the prototype. The sun drifts gently against the cursor (`gsap.quickTo`).
+- **A living room** (subtle, Apple-clean; all of it is switched off under `prefers-reduced-motion`):
+  - **Desk:** a pale oak surface under the iMac with a thin front edge and a contact shadow, plus a Magic Keyboard-style slab in front of the iMac. Generic shapes, no logos. They are children of the iMac, so they leave with it, and they fade in with the stand during the intro.
+  - **Window light:** soft leaf shadows (two blurred SVG branches, a 11 s and a 14 s sway loop on the wrapper, the blur on the svg so it is not repainted) and 26 dust specks drifting in the beam (`Dust.tsx`: a lightweight canvas, 30 fps cap, paused while the tab is hidden and at night).
+  - **Time of day** (`lib/room-light.ts`): the real Bangkok time drives the lighting, interpolated between keyframes. Morning = warm and low, midday = bright and neutral, evening = golden, night = a dimmer room with the iMac's screen glow on the desk. It is written to CSS variables on `<html>` every 30 s (`--sun-rgb`, `--sun-a`, `--beam-o`, `--beam-rot`, `--tint-*`, `--dim`, `--night`, `--fx`). `--ink-2` and `--ink-3` darken with `--night` so text keeps its contrast. `?hour=21.5` previews a time of day.
 - **Smooth scroll:** Lenis (`lerp: .085`). Drive it from `gsap.ticker`, forward its scroll events to `ScrollTrigger.update`, and set `lagSmoothing(0)`. Lock scrolling (`lenis.stop()` plus `overflow:hidden`) until the intro finishes. Set `history.scrollRestoration = 'manual'` and start at the top.
 - **Custom cursor:** a small ink dot. It grows into a violet "OPEN" disc over an unlocked project window. Hide it until the first pointer move, and on touch devices.
 - **Side nav** (right edge): About / Work / Activity / Contact. Each button scrolls to a timeline label: `st.start + (st.end - st.start) * label / tl.duration()`. Highlight the active section.
@@ -69,19 +75,31 @@ Keep components small with one job each. All copy from the prototype moves into 
 - Set the iMac's transform origin to the screen centre. Zoom target: `scale S`, `y = vh/2 - (top + b + Hs/2)`.
 
 ### 4.2 Intro (time-based, not scroll)
-1. "RG" letters rise in; the violet dot pops in and blinks (CSS steps animation).
-2. The iMac outline draws itself (SVG paths with `pathLength=1`, dash offset 1 → 0, staggered).
-3. The body and stand fade in, the outline fades out, and the screen powers on.
-4. The loader's "RG" flies into the screen (FLIP: measure both marks, then tween x/y/scale), then swaps with the on-screen mark.
-5. The scroll hint appears; scrolling unlocks.
-Wait for `document.fonts.ready` before measuring.
+Nothing travels across the screen: each step happens where it ends up.
+- **0.0 s:** "RG" and the violet dot are centred on the page; the dot blinks three times (CSS steps animation, 0.533 s per blink).
+- **1.6 s:** "RG" dissolves in place (blur 8px + fade, 0.5 s) and is gone by 2.1 s.
+- **2.1 s:** the iMac outline draws itself, already in its final position (SVG paths with `pathLength=1`, dash offset 1 → 0, staggered, 1.2 s in total).
+- **3.2 s:** the body and stand fill in, and the screen powers on with a soft white glow (0.5 s).
+- **3.8 s:** "RG" and the dot fade in **inside the screen**, at its exact centre (scale .96 → 1, 0.5 s); the dot keeps blinking.
+- **4.4 s:** the scroll hint appears and scrolling unlocks.
+Returning visitors in the same session (a `sessionStorage` flag, wrapped in try/catch) get a 1.2 s version that skips the loader RG. Any key press or click jumps to the end state. Wait for `document.fonts.ready` before starting. The screen mark's centre must equal the screen's centre (checked at 1280×620, 1440×900 and 1920×1080).
 
 ### 4.3 Scroll timeline (one pinned, scrubbed timeline)
-Pin `#stage1`, `scrub: 1`, `end: '+=' + vh * tl.duration() * 0.6`. Timings are the prototype's; keep them.
-1. Zoom into the display (1.2 units). The RG mark blurs out; the menu bar and the About panel come in.
-2. Scroll *inside* the screen through five panels: **About → Education → Journey → Right now → Toolkit**. The track moves `-vh` per panel (1 unit each, then a short hold), and each panel's `.rv` items stagger in.
-3. Zoom out: the iMac goes to the back of the room (`scale .74`, `opacity .3`, `blur 6px`) and the screen returns to a faint RG.
+Pin `#stage1`, `scrub: 1`, `end: '+=' + vh * tl.duration() * 0.6`.
+1. Zoom into the display (1.2 units). The RG mark blurs out; the menu bar, the **About window** and the **dock** come in.
+2. **One short stop on the desktop:** a hold of 1.7 units, about one viewport of scroll. There is no panel-by-panel scroll track any more (it was five panels, 8.4 units); the other topics are apps in the dock (section 4.5).
+3. Zoom out: the desktop fades, the iMac goes to the back of the room (`scale .74`, `opacity .3`, `blur 6px`) and the screen returns to a faint RG.
 4. Projects act (section 4.4).
+
+The About part of the timeline is 3.3 units (about 2.0 viewports of scroll), down from 8.4 units (about 5.0). `overflow: clip`, not `hidden`, on the stage, the screen and the safe box, so focus or `scrollIntoView` can never scroll them.
+
+### 4.5 The About desktop (a macOS-style stop)
+- After the zoom-in the **About window** (name, lede, chips, portrait) is open by default.
+- A **dock** is centred at the bottom of the screen: glass, SVG icons (no emojis), real labelled buttons: Education, Journey, Now, Toolkit, Résumé. Hover or focus shows the label; the open app has a dot under its icon.
+- Clicking an icon opens that app as a **window** (traffic lights, title bar, content from `content/about.ts`) that scales up from the icon. **One app window at a time**, over the About window; clicking another icon switches. The red light and **Esc** close it, scaling back into the icon.
+- **Résumé** opens a window with a **Download CV (PDF)** button linking to `/cv.pdf`. `public/cv.pdf` is a placeholder until the real CV is supplied; keep the name.
+- On the first view a small violet dot under the dock **pulses** with "Open the apps in the dock". It disappears after the first click.
+- Accessibility: windows are `role="dialog"` with `aria-modal`, an accessible name and a **focus trap**; focus moves to the close button on open and **returns to the icon** on close; **Lenis is paused** while a window is open.
 
 ### 4.4 Projects act
 Three columns: the **project list** (left), a **floating overview card** (middle, overlapping the window edge slightly) and the **glass browser window** (right). Order:
@@ -106,13 +124,13 @@ For each project, in order: its name rises in **black**; the previous name greys
 
 ## 5. Stage 3: iPhone (Activity → Contact)
 
-The section after Stage 1 scrolls in naturally, so the whole iMac act moves up and away. Then pin `#stage3` (scrubbed, about 7 vh of scroll).
+The section after Stage 1 scrolls in naturally, so the whole iMac act moves up and away. Then pin `#stage3` (scrubbed, **4.2 vh** of scroll: a 7-unit timeline at 0.6 vh per unit; it was 7 vh). The holds are short, and the turn into landscape and Contact (repos leave to the contact label) is 1.8 units, about one viewport.
 
 ### 5.1 The 3D phone
 - An R3F `<Canvas>` with a transparent background, over the room. Camera fov about 30. Lighting: drei `<Environment preset="studio">` (or a soft custom setup) plus `<ContactShadows>` on the floor, so it sits in the white room.
 - **Model:** a realistic modern iPhone-style GLB in `public/models/iphone.glb`. It **must** have a licence that allows use (CC0 or CC-BY; credit CC-BY in the footer). Compress it with `gltf-transform` (meshopt/draco), aiming for under 3 MB. The visible **USB-C port and speaker holes** on the bottom edge matter. Show **no Apple logo** (remove or hide that mesh).
 - **Fallback if no suitably licensed model exists:** build it procedurally. Use a drei `RoundedBox` body (titanium-white PBR), a screen plane, a bottom edge with a port and speaker holes, and a camera bump. That is acceptable, but it must look solid and lit, not flat.
-- **Screen:** drei `<Html transform occlude="blending">` attached to the screen plane and rendering `<PhoneScreen />`. This is real DOM, so it is clickable and crisp. Match its size to the screen mesh and give it rounded corners.
+- **Screen:** drei `<Html transform occlude="blending">` attached to the screen plane and rendering `<PhoneScreen />`. This is real DOM, so it is clickable and crisp. Its size, position and corner radius are **measured from the screen mesh** (`measureScreen` in `phone-geometry.ts`: the geometry's bounding box in local space, and the radius from the flat part of its top edge), then turned into the DOM's pixel size and drei's `distanceFactor`; nothing is hand-typed. The content is clipped with `border-radius` equal to the measured radius, plus `overflow: hidden`. drei's occlusion "hole" is a plain rectangle by default, which pokes square corners through the glass, so it is given the mesh's own rounded outline through `geometry`. The model has no Dynamic Island of its own, so the island is drawn **inside the clipped screen**, in the top safe area; it rotates with the phone, and the landscape content keeps clear of it. `npm run check:phone` captures zoomed crops of all four screen corners at three poses to check for gaps, overflow and square corners.
 - **Scroll poses** (GSAP tweens a group ref's rotation, position and scale):
   1. Start: bottom edge toward the camera, so the charging port is clearly visible. Roughly `rotation.x ≈ +1.3`, `y ≈ -0.35`, `z ≈ 0.12`, `scale .62`, a little lower.
   2. It **stands upright**, facing the camera, showing the RG logo screen (blinking dot).
@@ -121,10 +139,12 @@ The section after Stage 1 scrolls in naturally, so the whole iMac act moves up a
   5. The repos window leaves; the phone returns to centre and **rotates to landscape** (`z = -π/2`) while scaling up. The screen shows Socials, laid out upright for landscape and clear of the Dynamic Island. The headline "Let's build *something.*" and the email line appear.
 
 ### 5.2 Phone app (portrait)
-- A status bar (live Bangkok time), the header (avatar, "Pasindu", `@thergishere-wp`), and a segmented control **Activity | Location** with a sliding knob.
-- **Activity tab:**
-  - A **contribution grid** from the GitHub GraphQL `contributionsCollection` (last ~20 weeks, violet scale).
-  - A **live feed of real pushes**, newest first. Each row shows the repo, the message (public repos only), the commit count and a relative time.
+- A status bar (live Bangkok time), the header (avatar, "Pasindu", `@thergishere-wp`), and a segmented control **Summary | Pushes | Location** with a sliding knob.
+- **Summary tab ("Screen Time for code"):** light, Apple-minimal, violet and neutrals, no neon, no dark mode. It scrolls inside the phone (`data-lenis-prevent`). Everything is counted from real commit timestamps (`lib/activity-stats.ts`, Bangkok time); with no data it shows an empty state, never fake numbers.
+  - **Rings:** three concentric progress rings, drawn in the first time the app is seen. Outer: commits today (goal 8). Middle: active days this week (of 7). Inner: repos touched this week (goal 5). Big numbers beside them with small labels.
+  - **Coding time:** a bar chart with a **Day | Week** toggle. Day = commits per hour today (24 thin bars); Week = commits per day over the last 7 days. Grey bars, the peak bar in violet, a dotted average line, and a caption such as "Most active · 6 pm". Tapping a bar (or Enter on it; Left and Right move between bars) shows its count.
+  - **Most active:** the top 4 repos of the last 7 days, each row a rounded-square icon with the repo's initials, a thin bar and a commit count. Private repos show a lock.
+- **Pushes tab:** a **live feed of real pushes**, newest first. Each row shows the repo, the message (public repos only), the commit count and a relative time.
   - **Private repos show a lock, the repo name and "N commits · private repository". Never show messages for private repos.**
   - The feed polls every 60 s, and new rows slide in. The header reads "Live · last push 6m ago".
 - **Location tab:** a real **MapLibre** map using the OpenFreeMap `positron` style, centred on Bangkok (`[100.5018, 13.7563]`, zoom about 11.5) with a custom pulsing violet marker. Below it: Based in Bangkok, Thailand · local time · Home: Sri Lanka · Clients: TH · NZ · LK. Load the map lazily, only when the tab opens.
@@ -154,10 +174,10 @@ Environment variables (Vercel and `.env.local`; never committed, never sent to t
 `GET /api/github/repos`: `GET /user/repos?affiliation=owner&sort=pushed&per_page=50`. Return `{ name, private, description, language, pushedAt, url }`. For private repos, set `url: null` and `description: null` unless the repo is listed in an allow-list in `content/projects.ts` (so client repos never leak descriptions by accident).
 
 `GET /api/github/activity`:
-- Take the 12 most recently pushed repos. For each, `GET /repos/{owner}/{repo}/commits?author={user}&since=<14 days ago>&per_page=20`.
+- Take the 12 most recently pushed repos. For each, `GET /repos/{owner}/{repo}/commits?author={user}&since=<14 days ago>&per_page=100`.
 - Merge into "push groups" (same repo, commits within 30 minutes) and sort newest first.
 - Shape: `{ repo, private, count, message: string | null, url: string | null, at }`. For **private** repos, set `message: null` and `url: null`, **stripped on the server**.
-- The contribution calendar comes from GraphQL `viewer { contributionsCollection { contributionCalendar { weeks { contributionDays { date contributionCount } } } } }`.
+- **`commits`:** every commit of the window as a bare `{ repo, private, at }` (a timestamp and where, never what: no message, no URL), newest first. The Summary screen counts these per hour, per day and per repo. There is no contribution calendar and no GraphQL call any more.
 - Cache with `fetch(..., { next: { revalidate: 60 } })`. On a GitHub error, return the last good data with `stale: true`; the UI then reads "Live · reconnecting".
 - **No mock data in production.** If the token is missing, the feed shows an empty state, not fake rows.
 
