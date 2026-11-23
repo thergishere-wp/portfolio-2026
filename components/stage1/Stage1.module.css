@@ -13,6 +13,27 @@
   place-items: center;
   z-index: 1;
 }
+/* The story's one canvas: above the iMac, below the Projects text and cards.
+   It only draws the device; clicks pass through to the DOM screens. */
+.canvasWrap {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+/* A stand-in while the 3D device loads (or the GPU context is restored). */
+.silhouette {
+  position: absolute;
+  right: 11vw;
+  top: 50%;
+  width: min(20vw, 36vh);
+  aspect-ratio: 1.03 / 1.55;
+  transform: translateY(-52%);
+  border-radius: 7%;
+  background: linear-gradient(160deg, #3a3a40, #232327);
+  box-shadow: 0 40px 70px -30px rgba(20, 20, 20, 0.45);
+  opacity: 0.9;
+}
 .deskMark {
   font-size: 17vw;
   opacity: 0;

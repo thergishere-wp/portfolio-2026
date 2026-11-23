@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { useLenis } from "@/lib/smooth-scroll";
 import { LaunchingSoonCard } from "./LaunchingSoonCard";
-import { FRAME_SANDBOX } from "./ProjectPreview";
+import { FRAME_SANDBOX } from "./frame";
 import styles from "./ProjectViewer.module.css";
 
 interface ProjectViewerProps {

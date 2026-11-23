@@ -25,7 +25,11 @@ async function launch(): Promise<Browser> {
 }
 
 async function main(): Promise<void> {
-  const only = new Set(process.argv.slice(2));
+  const args = process.argv.slice(2);
+  // --fold: only the tablet-sized shots (1024x784, the foldable's inner
+  // screen), written to public/shots/<id>-fold.jpg.
+  const fold = args.includes("--fold");
+  const only = new Set(args.filter((a) => !a.startsWith("--")));
   const targets = projects.filter(
     (p) => p.frameUrl && p.shot && (only.size === 0 || only.has(p.id)),
   );
@@ -33,14 +37,14 @@ async function main(): Promise<void> {
 
   const browser = await launch();
   const context = await browser.newContext({
-    viewport: { width: 1440, height: 900 },
+    viewport: fold ? { width: 1024, height: 784 } : { width: 1440, height: 900 },
     deviceScaleFactor: 1,
     reducedMotion: "reduce", // settle entrance animations for a stable frame
   });
 
   let failed = 0;
   for (const project of targets) {
-    const file = path.join(OUT_DIR, `${project.id}.png`);
+    const file = path.join(OUT_DIR, fold ? `${project.id}-fold.jpg` : `${project.id}.png`);
     const page = await context.newPage();
     try {
       await page.goto(project.frameUrl as string, {
@@ -48,7 +52,9 @@ async function main(): Promise<void> {
         timeout: 45_000,
       });
       await page.waitForTimeout(1500);
-      await page.screenshot({ path: file, type: "png" });
+      await page.screenshot(
+        fold ? { path: file, type: "jpeg", quality: 84 } : { path: file, type: "png" },
+      );
       console.log(`ok     ${project.name.padEnd(20)} ${path.relative(process.cwd(), file)}`);
     } catch (error) {
       failed += 1;

@@ -1,0 +1,121 @@
+/*
+ * The DOM over the foldable's open inner screen. It is laid out at the
+ * iframe's tablet viewport (1024 wide) and mapped onto the screen mesh, so the
+ * live pages render at a tablet size and nothing is scaled in CSS.
+ */
+.inner {
+  position: relative;
+  overflow: hidden;
+  /* Clipped to the mesh's measured corner radius, like the cover screen. */
+  border-radius: var(--ir);
+  clip-path: inset(0 round var(--ir));
+  isolation: isolate;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+.frame {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+}
+.frame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+  pointer-events: none;
+  transition: opacity 0.4s;
+}
+
+/* The crease where the two halves meet. */
+.crease {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.3),
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(0, 0, 0, 0.2)
+  );
+  z-index: 4;
+  pointer-events: none;
+}
+
+/* The lock, shown on the open screen until it is unlocked. */
+.lock {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 5;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 30px 44px 26px;
+  border-radius: 34px;
+  background: rgba(255, 255, 255, 0.74);
+  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  backdrop-filter: blur(22px) saturate(1.4);
+  box-shadow:
+    0 24px 60px -24px rgba(20, 20, 20, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+.chip svg {
+  width: 96px;
+  height: 96px;
+  overflow: visible;
+}
+.chip p {
+  font-family: var(--mono);
+  font-size: 17px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* The click target: opens the project full size. */
+.hit {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: none;
+}
+.hit[data-on="true"] {
+  pointer-events: auto;
+}
+.hint {
+  position: absolute;
+  right: 22px;
+  bottom: 22px;
+  z-index: 7;
+  font-family: var(--mono);
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: rgba(20, 20, 20, 0.75);
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.hit[data-on="true"]:hover ~ .hint,
+.hit[data-on="true"]:focus-visible ~ .hint {
+  opacity: 0.92;
+}

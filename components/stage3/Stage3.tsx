@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type RefObject,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { contact } from "@/content/socials";
 import { cn } from "@/lib/cn";
@@ -21,49 +15,15 @@ import {
   PHONE_X_WITH_REPOS,
 } from "@/lib/phone-rig";
 import { registerScrollTarget } from "@/lib/scroll-targets";
+import { useNear } from "@/lib/useNear";
 import { usePrefersReducedMotion } from "@/lib/useReducedMotion";
+import { hasWebGL } from "@/lib/webgl";
 import { ReposWindow } from "./ReposWindow";
 import { Stage3Static } from "./Stage3Static";
 import styles from "./Stage3.module.css";
 
 // Three.js and R3F load only when the stage is near, and never on the server.
 const PhoneCanvas = dynamic(() => import("./PhoneCanvas"), { ssr: false });
-
-/** Whether `ref` is within `margin` of the viewport. With `latch`, stays true once seen. */
-function useNear(ref: RefObject<Element | null>, margin: string, latch: boolean): boolean {
-  const [near, setNear] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setNear((prev) => (latch && prev ? true : entry.isIntersecting)),
-      { rootMargin: margin },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [ref, margin, latch]);
-  return near;
-}
-
-let webglSupport: boolean | null = null;
-
-/**
- * Whether WebGL works. Creating a context is slow (it starts the GPU path), so
- * this runs once, only when the 3D stage is about to mount, and releases the
- * test context straight away.
- */
-function hasWebGL(): boolean {
-  if (webglSupport !== null) return webglSupport;
-  try {
-    const canvas = document.createElement("canvas");
-    const gl = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
-    webglSupport = Boolean(gl);
-    gl?.getExtension("WEBGL_lose_context")?.loseContext();
-  } catch {
-    webglSupport = false;
-  }
-  return webglSupport;
-}
 
 /** The pinned stage is 2.0 viewports of scroll (see lib/scroll-budget.ts). */
 const LENGTH = STAGE3_RESTS[STAGE3_RESTS.length - 1];

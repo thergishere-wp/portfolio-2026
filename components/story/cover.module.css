@@ -1,0 +1,89 @@
+/*
+ * The cover screen's DOM. Like the old phone screen it is laid out phone-wide
+ * (390px), clipped to the mesh's measured corner radius, and its layers
+ * cross-fade under the rig.
+ */
+.scr {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--sr);
+  clip-path: inset(0 round var(--sr));
+  isolation: isolate;
+  background: #111;
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 14.44px;
+  -webkit-font-smoothing: antialiased;
+}
+.layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* The lock screen: Bangkok time, a lock and the hint. */
+.lockScreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 5.4em 1.5em 2.6em;
+  background:
+    radial-gradient(90% 55% at 70% 8%, rgba(125, 100, 255, 0.55), transparent 70%),
+    radial-gradient(80% 50% at 10% 90%, rgba(255, 170, 90, 0.4), transparent 70%),
+    linear-gradient(180deg, #2b2742, #15131f);
+}
+.lockIcon {
+  width: 1.7em;
+  height: 1.7em;
+  color: rgba(255, 255, 255, 0.85);
+}
+.date {
+  margin-top: 0.7em;
+  font-size: 1.15em;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.78);
+}
+.time {
+  margin-top: 0.1em;
+  font-size: 6.4em;
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.city {
+  margin-top: 0.5em;
+  font-family: var(--mono);
+  font-size: 0.82em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+.hint {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9em;
+  font-family: var(--mono);
+  font-size: 0.86em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+.chev {
+  width: 1.4em;
+  height: 1.4em;
+  animation: nudge 1.8s ease-in-out infinite;
+}
+@keyframes nudge {
+  50% {
+    transform: translateY(0.35em);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chev {
+    animation: none;
+  }
+}
