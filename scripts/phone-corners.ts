@@ -19,9 +19,9 @@ const CROP = 90;
 
 /** Progress through the pinned phone stage for each pose. */
 const POSES = [
-  { name: "upright", progress: 0.12 },
+  { name: "upright", progress: 0.2 },
   { name: "moved-left", progress: 0.5 },
-  { name: "landscape", progress: 0.94 },
+  { name: "landscape", progress: 0.9 },
 ] as const;
 
 interface Box {

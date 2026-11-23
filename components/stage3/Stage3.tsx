@@ -62,6 +62,13 @@ function hasWebGL(): boolean {
   return webglSupport;
 }
 
+/**
+ * The timeline is 7 units long and 0.6 viewport heights of scroll pay for each,
+ * so the pinned stage is 4.2 viewports (it was 7, which is 40% less).
+ */
+const TIMELINE_UNITS = 7;
+const SCROLL_PER_UNIT = 0.6;
+
 /** The pinned iPhone story: Activity, then Contact. */
 function AnimatedStage3({ onUnsupported }: { onUnsupported: () => void }) {
   const sectionRef = useRef<HTMLElement>(null);
@@ -92,7 +99,7 @@ function AnimatedStage3({ onUnsupported }: { onUnsupported: () => void }) {
         scrollTrigger: {
           trigger: section,
           start: "top top",
-          end: () => "+=" + window.innerHeight * 7,
+          end: () => "+=" + window.innerHeight * TIMELINE_UNITS * SCROLL_PER_UNIT,
           scrub: 1,
           pin: true,
           invalidateOnRefresh: true,
@@ -102,52 +109,53 @@ function AnimatedStage3({ onUnsupported }: { onUnsupported: () => void }) {
       // 1-2. Stand upright, facing the camera, showing the RG logo.
       tl.to(
         rig,
-        { rx: 0, ry: 0, rz: 0, scale: 1, y: 0, duration: 1.8, ease: "power3.inOut" },
+        { rx: 0, ry: 0, rz: 0, scale: 1, y: 0, duration: 1.5, ease: "power3.inOut" },
         0,
       )
-        .to(rig, { shadow: 1, duration: 1 }, 0.9)
+        .to(rig, { shadow: 1, duration: 0.8 }, 0.7)
         // 3. Move left; the screen cross-fades to the app; repos slide in.
-        .to(rig, { x: PHONE_X_WITH_REPOS, duration: 1.2, ease: "power2.inOut" }, 2.2)
-        .to(rig, { logo: 0, duration: 0.4 }, 2.5)
-        .to(rig, { app: 1, duration: 0.5 }, 2.7)
+        .to(rig, { x: PHONE_X_WITH_REPOS, duration: 1, ease: "power2.inOut" }, 1.7)
+        .to(rig, { logo: 0, duration: 0.35 }, 1.95)
+        .to(rig, { app: 1, duration: 0.45 }, 2.1)
         .fromTo(
           $("[data-repos]"),
           { autoAlpha: 0, x: 120 },
-          { autoAlpha: 1, x: 0, duration: 1, ease: "power2.out" },
-          2.6,
+          { autoAlpha: 1, x: 0, duration: 0.9, ease: "power2.out" },
+          2.0,
         )
-        // 4. A hold, to use the tabs and scroll the repos list.
-        .addLabel("activity", 3.7)
-        .to({}, { duration: 1.6 }, 3.7);
+        // 4. A short hold, to use the tabs and scroll the repos list.
+        .addLabel("activity", 3.0)
+        .to({}, { duration: 1 }, 3.0);
 
       // 5. Repos leave; the phone returns to centre and turns to landscape.
-      const t = 5.3;
-      tl.to($("[data-repos]"), { autoAlpha: 0, x: 120, duration: 0.7, ease: "power2.in" }, t)
-        .to(rig, { x: 0, duration: 1.2, ease: "power2.inOut" }, t + 0.3)
-        .to(rig, { shadow: 0, duration: 1 }, t + 0.3)
+      // From here to the contact label is about one viewport of scroll.
+      const t = 4;
+      tl.to($("[data-repos]"), { autoAlpha: 0, x: 120, duration: 0.6, ease: "power2.in" }, t)
+        .to(rig, { x: 0, duration: 1, ease: "power2.inOut" }, t + 0.2)
+        .to(rig, { shadow: 0, duration: 0.8 }, t + 0.2)
         .to(
           rig,
           {
             rz: -Math.PI / 2,
             scale: () => landscapeScale(window.innerWidth, window.innerHeight),
-            duration: 1.3,
+            duration: 1.1,
             ease: "power3.inOut",
           },
-          t + 0.5,
+          t + 0.4,
         )
-        .to(rig, { app: 0, duration: 0.4 }, t + 0.6)
-        .to(rig, { social: 1, duration: 0.5 }, t + 1.1)
-        .fromTo($("[data-a3c]"), { opacity: 0, y: -20 }, { ...out, duration: 0.6 }, t + 1.4)
+        .to(rig, { app: 0, duration: 0.35 }, t + 0.5)
+        .to(rig, { social: 1, duration: 0.45 }, t + 0.9)
+        .fromTo($("[data-a3c]"), { opacity: 0, y: -20 }, { ...out, duration: 0.5 }, t + 1.1)
         // autoAlpha: hidden (and so unfocusable) until it appears, since it holds a link.
         .fromTo(
           $("[data-a3-foot]"),
           { autoAlpha: 0, y: 20 },
-          { autoAlpha: 1, y: 0, ease: "power2.out", duration: 0.6 },
-          t + 1.5,
+          { autoAlpha: 1, y: 0, ease: "power2.out", duration: 0.5 },
+          t + 1.2,
         )
-        .to(rig, { apps: 1, duration: 0.82 }, t + 1.3)
-        .addLabel("contact", t + 2.2)
-        .to({}, { duration: 0.8 }, t + 2.2);
+        .to(rig, { apps: 1, duration: 0.8 }, t + 1)
+        .addLabel("contact", t + 1.8)
+        .to({}, { duration: 1.2 }, t + 1.8);
 
       const offActivity = registerScrollTarget("activity", tl, "activity");
       const offContact = registerScrollTarget("contact", tl, "contact");
