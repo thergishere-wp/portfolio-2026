@@ -57,6 +57,7 @@ export function Imac({ ref, layout, children }: ImacProps) {
           {children}
           <div className={styles.glare} data-glare />
           <div className={styles.screenOff} data-intro="screen-off" />
+          <div className={styles.powerGlow} data-intro="glow" />
         </div>
         <div className={styles.chin} />
       </div>

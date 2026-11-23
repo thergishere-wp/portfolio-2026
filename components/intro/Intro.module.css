@@ -8,4 +8,15 @@
 }
 .mark {
   font-size: clamp(90px, 14vw, 240px);
+  opacity: 0;
+}
+/* The loader's dot blinks exactly three times in 1.6 s, then stays on. */
+.mark [data-dot] {
+  animation-duration: 0.5333s;
+  animation-iteration-count: 3;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mark [data-dot] {
+    animation: none;
+  }
 }

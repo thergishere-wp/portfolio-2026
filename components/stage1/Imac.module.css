@@ -61,6 +61,20 @@
   z-index: 5;
   pointer-events: none;
 }
+/* The soft white flash as the screen powers on (intro, 3.2 s). */
+.powerGlow {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    70% 80% at 50% 50%,
+    #fff 0%,
+    rgba(255, 255, 255, 0.6) 45%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
 .glare {
   position: absolute;
   inset: 0;
