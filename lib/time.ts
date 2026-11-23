@@ -38,6 +38,40 @@ export function formatBangkok(variant: ClockVariant, date: Date): string {
 }
 
 /**
+ * Relative time from an ISO timestamp.
+ * long:  "6 min ago", "2 hours ago", "3 days ago"
+ * short: "6m", "2h", "3d"
+ */
+export function formatRelative(
+  iso: string,
+  style: "long" | "short" = "long",
+  now: number = Date.now(),
+): string {
+  const seconds = Math.max(0, Math.round((now - new Date(iso).getTime()) / 1000));
+  const units: Array<[number, string, string, string]> = [
+    [60, "m", " min", " min"],
+    [60 * 24, "h", " hour", " hours"],
+    [60 * 24 * 30, "d", " day", " days"],
+    [60 * 24 * 365, "mo", " month", " months"],
+  ];
+  if (seconds < 60) return style === "short" ? "now" : "just now";
+
+  const minutes = Math.floor(seconds / 60);
+  let value = minutes;
+  let divisor = 1;
+  for (const [limit, short, singular, plural] of units) {
+    if (minutes < limit) {
+      value = Math.floor(minutes / divisor);
+      if (style === "short") return `${value}${short}`;
+      return `${value}${value === 1 ? singular : plural} ago`;
+    }
+    divisor = limit;
+  }
+  value = Math.floor(minutes / (60 * 24 * 365));
+  return style === "short" ? `${value}y` : `${value} ${value === 1 ? "year" : "years"} ago`;
+}
+
+/**
  * Live Bangkok time. Returns null until mounted, so server and first client
  * render match, then updates on an interval.
  */

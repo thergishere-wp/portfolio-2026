@@ -1,0 +1,97 @@
+.stage {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 1;
+}
+/* The canvas only draws the phone; clicks pass through to the DOM screen. */
+.canvasWrap {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.copy {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 7vh;
+  text-align: center;
+  z-index: 2;
+  opacity: 0;
+}
+.copyEyebrow {
+  justify-content: center;
+}
+.copy h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(44px, 4.4vw, 84px);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin-top: 14px;
+}
+.copy h2 em {
+  color: var(--violet);
+}
+.foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 5vh;
+  text-align: center;
+  font-size: 14px;
+  color: var(--ink-2);
+  opacity: 0;
+  z-index: 5;
+}
+.foot a {
+  font-family: var(--mono);
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Reduced motion, or no WebGL: contact as a plain section. */
+.static {
+  position: relative;
+  z-index: 1;
+  padding: 12vh 7vw;
+  text-align: center;
+}
+.static h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(44px, 4.4vw, 84px);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin-top: 14px;
+}
+.static h2 em {
+  color: var(--violet);
+}
+.staticList {
+  list-style: none;
+  margin: 6vh auto 0;
+  max-width: 760px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+}
+.staticLink {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  text-align: left;
+}
+.staticLink b {
+  font-weight: 550;
+}
+.staticLink span {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}

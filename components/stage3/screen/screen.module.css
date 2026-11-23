@@ -1,0 +1,474 @@
+/*
+ * The phone's DOM screen. Sized in em from one base so it scales with the
+ * phone: the screen is laid out at 390px wide, then mapped onto the mesh.
+ */
+.scr {
+  position: relative;
+  overflow: hidden;
+  border-radius: 52px;
+  background: #fbfaf8;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14.44px;
+  -webkit-font-smoothing: antialiased;
+}
+.island {
+  position: absolute;
+  top: 1em;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30%;
+  height: 2.4em;
+  border-radius: 99px;
+  background: #000;
+  z-index: 20;
+}
+/* The three layers cross-fade; the rig drives their opacity. */
+.layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+}
+.layerLogo {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Logo screen */
+.logo {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(80% 60% at 50% 40%, #fff, #f1efea);
+}
+.logoMark {
+  font-size: 5.6em;
+}
+
+/* App screen */
+.app {
+  position: absolute;
+  inset: 0;
+  padding: 3.6em 1.3em 1.2em;
+  display: flex;
+  flex-direction: column;
+  background: #fbfaf8;
+}
+.sbar {
+  position: absolute;
+  top: 1.25em;
+  left: 2.1em;
+  right: 2.1em;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95em;
+  font-weight: 600;
+}
+.ic {
+  display: flex;
+  gap: 0.35em;
+  align-items: center;
+}
+.ic i {
+  display: inline-block;
+  background: var(--ink);
+  border-radius: 2px;
+}
+.icSignal {
+  width: 1.1em;
+  height: 0.7em;
+}
+.icBattery {
+  width: 1.5em;
+  height: 0.75em;
+  border-radius: 0.2em !important;
+}
+.who {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  margin-top: 0.4em;
+}
+.avatar {
+  width: 2.8em;
+  height: 2.8em;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: 50% 25%;
+}
+.who b {
+  display: block;
+  font-size: 1.15em;
+  letter-spacing: -0.02em;
+}
+.who span {
+  font-family: var(--mono);
+  font-size: 0.8em;
+  color: var(--ink-3);
+}
+.seg {
+  margin-top: 1.1em;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 0.25em;
+  border-radius: 0.9em;
+  background: rgba(20, 20, 20, 0.06);
+  position: relative;
+}
+.seg button {
+  background: none;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: center;
+  padding: 0.55em 0;
+  font-size: 0.95em;
+  font-weight: 550;
+  color: var(--ink-2);
+  position: relative;
+  z-index: 2;
+  border-radius: 0.7em;
+}
+.seg button.on {
+  color: var(--ink);
+}
+.knob {
+  position: absolute;
+  top: 0.25em;
+  left: 0.25em;
+  width: calc(50% - 0.25em);
+  height: calc(100% - 0.5em);
+  border-radius: 0.7em;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  transition: transform 0.35s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+.seg.loc .knob {
+  transform: translateX(100%);
+}
+.panes {
+  position: relative;
+  flex: 1;
+  margin-top: 1em;
+}
+.pane {
+  position: absolute;
+  inset: 0;
+  transition:
+    opacity 0.35s,
+    transform 0.35s;
+}
+.pane.off {
+  opacity: 0;
+  transform: translateY(0.6em);
+  pointer-events: none;
+}
+
+/* Contribution grid */
+.heat {
+  display: grid;
+  grid-template-rows: repeat(7, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0.22em;
+  height: 6.4em;
+}
+.heat i {
+  border-radius: 0.15em;
+  background: rgba(20, 20, 20, 0.07);
+}
+.heat i.l1 {
+  background: rgba(91, 61, 245, 0.25);
+}
+.heat i.l2 {
+  background: rgba(91, 61, 245, 0.5);
+}
+.heat i.l3 {
+  background: rgba(91, 61, 245, 0.8);
+}
+
+/* Activity feed */
+.feedhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1em 0 0.5em;
+  font-size: 0.82em;
+  color: var(--ink-3);
+  font-family: var(--mono);
+}
+.feedStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+}
+.feedStatus::before {
+  content: "";
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+.feedStatus.live {
+  color: #18874f;
+}
+.feedStatus.live::before {
+  background: #2bb673;
+  animation: pulse 1.6s infinite;
+}
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(43, 182, 115, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 0.6em rgba(43, 182, 115, 0);
+  }
+}
+.feed {
+  list-style: none;
+  display: grid;
+  gap: 0.45em;
+  overflow: hidden;
+  max-height: calc(100% - 9.5em);
+}
+.feed li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.7em;
+  align-items: center;
+  padding: 0.65em 0.75em;
+  border-radius: 0.8em;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+.feedIcon {
+  width: 1.9em;
+  height: 1.9em;
+  border-radius: 0.55em;
+  display: grid;
+  place-items: center;
+  background: rgba(91, 61, 245, 0.08);
+  color: var(--violet);
+}
+.feedIcon svg {
+  width: 1em;
+  height: 1em;
+}
+.msg {
+  min-width: 0;
+}
+.msg b {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.82em;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.msg span {
+  display: block;
+  font-size: 0.82em;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.feed time {
+  font-family: var(--mono);
+  font-size: 0.75em;
+  color: var(--ink-3);
+}
+.feedNew {
+  animation: slidein 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes slidein {
+  from {
+    opacity: 0;
+    transform: translateY(-1em) scale(0.97);
+  }
+}
+.feed.skel li {
+  height: 3.4em;
+  background: linear-gradient(90deg, #fff 0%, #f1efeb 50%, #fff 100%) 0 0 / 200% 100%;
+  animation: shim 1.6s linear infinite;
+}
+@keyframes shim {
+  to {
+    background-position: -200% 0;
+  }
+}
+.note {
+  margin-top: 0.8em;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.7em;
+  color: var(--ink-3);
+}
+
+/* Location */
+.mapbox {
+  position: relative;
+  height: 14em;
+  display: grid;
+  place-items: center;
+  border-radius: 1em;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  background: repeating-linear-gradient(45deg, #f6f4f0 0 10px, #fbfaf8 10px 20px);
+  font-family: var(--mono);
+  font-size: 0.8em;
+  color: var(--ink-3);
+  text-align: center;
+}
+.pin {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 0.9em;
+  height: 0.9em;
+  margin: -0.45em 0 0 -0.45em;
+  border-radius: 50%;
+  background: var(--violet);
+}
+.pin::before,
+.pin::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.2px solid var(--violet);
+  animation: ring 2s ease-out infinite;
+}
+.pin::after {
+  animation-delay: 1s;
+}
+@keyframes ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(6);
+    opacity: 0;
+  }
+}
+.mapLabel {
+  margin-top: 5.5em;
+}
+.locinfo {
+  margin-top: 1em;
+  display: grid;
+  gap: 0.5em;
+}
+.locinfo div {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75em 0.9em;
+  border-radius: 0.8em;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  font-size: 0.9em;
+}
+.locinfo span {
+  color: var(--ink-3);
+}
+
+/* Socials: laid out upright for landscape (the phone turns -90deg) */
+.social {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.rot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--sh);
+  height: var(--sw);
+  margin-left: calc(var(--sh) / -2);
+  margin-top: calc(var(--sw) / -2);
+  transform: rotate(-90deg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  /* The Dynamic Island ends up on the right in landscape: keep clear of it. */
+  padding: 0 5.2em 0 3em;
+  background:
+    radial-gradient(80% 90% at 80% 20%, rgba(91, 61, 245, 0.12), transparent 60%),
+    #fbfaf8;
+}
+.hello {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 2.6em;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.hello em {
+  color: var(--violet);
+}
+.sub {
+  margin-top: 0.5em;
+  font-size: 0.95em;
+  color: var(--ink-2);
+}
+.apps {
+  margin-top: 1.8em;
+  width: 100%;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.6em;
+}
+.socialLink {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7em;
+  font-size: 0.72em;
+  color: var(--ink-2);
+  min-width: 0;
+  transition: transform 0.25s;
+}
+.socialLink:hover {
+  transform: translateY(-0.3em);
+}
+.socialLink span {
+  font-family: var(--mono);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}
+.socialIcon {
+  width: 4.6em;
+  height: 4.6em;
+  border-radius: 1.15em;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  box-shadow: 0 0.6em 1.2em -0.5em rgba(0, 0, 0, 0.35);
+}
+.socialIcon svg {
+  width: 2.1em;
+  height: 2.1em;
+}
+.instagram {
+  background: radial-gradient(circle at 30% 110%, #ffd776 0%, #f56040 35%, #c13584 65%, #5851db 100%);
+}
+.facebook {
+  background: #1877f2;
+}
+.linkedin {
+  background: #0a66c2;
+}
+.github {
+  background: #141414;
+}
+.email {
+  background: var(--violet);
+}
