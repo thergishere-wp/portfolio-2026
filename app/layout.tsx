@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { SITE, SITE_URL } from "@/lib/site";
 import { SmoothScroll } from "@/lib/smooth-scroll";
 import "./globals.css";
 
@@ -21,9 +22,43 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "Pasindu Mahen Walakuluarachchi — Portfolio",
-  description:
-    "Full-stack developer building systems and data platforms. Designer of Kai-Flo, founder of KaYo Devs, based in Bangkok.",
+  metadataBase: new URL(SITE_URL),
+  title: SITE.title,
+  description: SITE.description,
+  applicationName: SITE.name,
+  authors: [{ name: SITE.name, url: SITE_URL }],
+  creator: SITE.name,
+  keywords: [
+    "full-stack developer",
+    "Next.js",
+    "Supabase",
+    "TypeScript",
+    "Bangkok",
+    "portfolio",
+    "Kai-Flo",
+    "KaYo Devs",
+  ],
+  alternates: { canonical: "/" },
+  // The card image is app/opengraph-image.png (see scripts/capture-og.ts).
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: SITE.name,
+    title: SITE.title,
+    description: SITE.description,
+    locale: "en_GB",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE.title,
+    description: SITE.description,
+  },
+  robots: { index: true, follow: true },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#F2F0EC",
+  colorScheme: "light",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

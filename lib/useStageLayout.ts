@@ -31,7 +31,11 @@ export function useStageLayout(
       // A hidden or not-yet-sized window reports 0x0, which would make the
       // aspect clamp NaN. The next resize or refresh recomputes.
       if (!window.innerWidth || !window.innerHeight) return;
-      const next = computeStageLayout(window.innerWidth, window.innerHeight);
+      // clientWidth, not innerWidth: the visible width, without a scrollbar.
+      const next = computeStageLayout(
+        document.documentElement.clientWidth,
+        window.innerHeight,
+      );
       layoutRef.current = next;
       const root = document.documentElement;
       for (const [name, value] of Object.entries(stageCssVars(next))) {

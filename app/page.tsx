@@ -1,6 +1,7 @@
 import { Cursor } from "@/components/chrome/Cursor";
 import { Footer } from "@/components/chrome/Footer";
 import { Grain } from "@/components/chrome/Grain";
+import { JsonLd } from "@/components/chrome/JsonLd";
 import { Room } from "@/components/chrome/Room";
 import { ScrollHint } from "@/components/chrome/ScrollHint";
 import { SideNav } from "@/components/chrome/SideNav";
@@ -11,6 +12,7 @@ import { Stage3 } from "@/components/stage3/Stage3";
 export default function Home() {
   return (
     <>
+      <JsonLd />
       <Room />
       <Grain />
       <Cursor />

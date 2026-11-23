@@ -1,10 +1,10 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
-  useSyncExternalStore,
   type RefObject,
 } from "react";
 import dynamic from "next/dynamic";
@@ -42,19 +42,28 @@ function useNear(ref: RefObject<Element | null>, margin: string, latch: boolean)
   return near;
 }
 
+let webglSupport: boolean | null = null;
+
+/**
+ * Whether WebGL works. Creating a context is slow (it starts the GPU path), so
+ * this runs once, only when the 3D stage is about to mount, and releases the
+ * test context straight away.
+ */
 function hasWebGL(): boolean {
+  if (webglSupport !== null) return webglSupport;
   try {
     const canvas = document.createElement("canvas");
-    return Boolean(canvas.getContext("webgl2") ?? canvas.getContext("webgl"));
+    const gl = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
+    webglSupport = Boolean(gl);
+    gl?.getExtension("WEBGL_lose_context")?.loseContext();
   } catch {
-    return false;
+    webglSupport = false;
   }
+  return webglSupport;
 }
 
-const noopSubscribe = (): (() => void) => () => {};
-
 /** The pinned iPhone story: Activity, then Contact. */
-function AnimatedStage3() {
+function AnimatedStage3({ onUnsupported }: { onUnsupported: () => void }) {
   const sectionRef = useRef<HTMLElement>(null);
   const canvasWrapRef = useRef<HTMLDivElement>(null);
   const [rig] = useState(createPhoneRig);
@@ -64,6 +73,12 @@ function AnimatedStage3() {
 
   // Start polling GitHub once the stage is near, not on page load.
   useEffect(() => (mounted ? startGithubPolling() : undefined), [mounted]);
+
+  // No WebGL: fall back to the plain contact section, but only once the 3D
+  // stage is actually about to load.
+  useEffect(() => {
+    if (mounted && !hasWebGL()) onUnsupported();
+  }, [mounted, onUnsupported]);
 
   useGSAP(
     () => {
@@ -123,7 +138,13 @@ function AnimatedStage3() {
         .to(rig, { app: 0, duration: 0.4 }, t + 0.6)
         .to(rig, { social: 1, duration: 0.5 }, t + 1.1)
         .fromTo($("[data-a3c]"), { opacity: 0, y: -20 }, { ...out, duration: 0.6 }, t + 1.4)
-        .fromTo($("[data-a3-foot]"), { opacity: 0, y: 20 }, { ...out, duration: 0.6 }, t + 1.5)
+        // autoAlpha: hidden (and so unfocusable) until it appears, since it holds a link.
+        .fromTo(
+          $("[data-a3-foot]"),
+          { autoAlpha: 0, y: 20 },
+          { autoAlpha: 1, y: 0, ease: "power2.out", duration: 0.6 },
+          t + 1.5,
+        )
         .to(rig, { apps: 1, duration: 0.82 }, t + 1.3)
         .addLabel("contact", t + 2.2)
         .to({}, { duration: 0.8 }, t + 2.2);
@@ -166,6 +187,11 @@ function AnimatedStage3() {
 
 export function Stage3() {
   const reduced = usePrefersReducedMotion();
-  const webgl = useSyncExternalStore(noopSubscribe, hasWebGL, () => true);
-  return reduced || !webgl ? <Stage3Static /> : <AnimatedStage3 />;
+  const [noWebGL, setNoWebGL] = useState(false);
+  const markUnsupported = useCallback(() => setNoWebGL(true), []);
+  return reduced || noWebGL ? (
+    <Stage3Static />
+  ) : (
+    <AnimatedStage3 onUnsupported={markUnsupported} />
+  );
 }
