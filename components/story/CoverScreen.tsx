@@ -4,7 +4,7 @@ import { useEffect, useRef, type CSSProperties } from "react";
 import { projectsAct } from "@/content/projects";
 import { cn } from "@/lib/cn";
 import { gsap } from "@/lib/gsap";
-import type { FoldRig } from "@/lib/fold-rig";
+import { foldAngle, type FoldRig } from "@/lib/fold-rig";
 import { useBangkokTime } from "@/lib/time";
 import { AppScreen } from "../stage3/screen/AppScreen";
 import { SocialsScreen } from "../stage3/screen/SocialsScreen";
@@ -48,11 +48,20 @@ export function CoverScreen({
   useEffect(() => {
     const apply = (): void => {
       // The DOM sits behind the canvas, so it must hide itself while the
-      // device is hidden (the model is not drawn, so nothing would cover it).
-      if (rootRef.current) setLayer(rootRef.current, rig.show > 0.02 ? 1 : 0);
+      // device is hidden (the model is not drawn, so nothing would cover it),
+      // and while the cover cannot face the viewer: it is on the outer face
+      // of the right half, so it only exists once the phone is nearly shut.
+      // A half-open phone never shows the cover's content.
+      const facing = Math.min(1, Math.max(0, (foldAngle(rig) / Math.PI - 0.72) / 0.2));
+      if (rootRef.current) setLayer(rootRef.current, rig.show > 0.02 ? facing : 0);
       if (lockRef.current) setLayer(lockRef.current, rig.lock);
       if (appRef.current) setLayer(appRef.current, rig.app);
-      if (socialRef.current) setLayer(socialRef.current, rig.social);
+      // The socials are laid out for landscape and exist only while the phone
+      // actually is in landscape (turned more than 45 degrees), whatever the
+      // step says, so reversing can never show them rotated on an upright phone.
+      const landscape = Math.abs(rig.rz) > Math.PI / 4;
+      if (rootRef.current) rootRef.current.dataset.landscape = landscape ? "true" : "false";
+      if (socialRef.current) setLayer(socialRef.current, landscape ? rig.social : 0);
     };
     apply();
     gsap.ticker.add(apply);
@@ -72,9 +81,9 @@ export function CoverScreen({
   const date = day ? day.split(" ").slice(0, 3).join(" ") : "";
 
   return (
-    <div ref={rootRef} className={screen.scr} style={size}>
+    <div ref={rootRef} className={screen.scr} style={size} data-landscape="false" data-cover>
       <DynamicIsland rig={rig} />
-      <div ref={lockRef} className={cn(screen.layer, styles.lockScreen)}>
+      <div ref={lockRef} className={cn(screen.layer, styles.lockScreen)} data-layer="lock">
         <svg
           className={styles.lockIcon}
           viewBox="0 0 24 24"
@@ -106,10 +115,10 @@ export function CoverScreen({
           {projectsAct.lockedLabel}
         </div>
       </div>
-      <div ref={appRef} className={screen.layer}>
+      <div ref={appRef} className={screen.layer} data-layer="app">
         <AppScreen rig={rig} />
       </div>
-      <div ref={socialRef} className={screen.layer}>
+      <div ref={socialRef} className={screen.layer} data-layer="social">
         <SocialsScreen rig={rig} />
       </div>
     </div>

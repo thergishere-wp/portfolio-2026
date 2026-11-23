@@ -13,8 +13,7 @@ import { useIntroState } from "@/lib/intro-state";
 import { storyRests } from "@/lib/scroll-budget";
 import { registerScrollTarget } from "@/lib/scroll-targets";
 import { useLenis } from "@/lib/smooth-scroll";
-import { registerSnapSource } from "@/lib/snap-points";
-import { StepSequencer } from "@/lib/step-sequencer";
+import { StepDriver } from "@/lib/step-driver";
 import { useNear } from "@/lib/useNear";
 import { useStageLayout } from "@/lib/useStageLayout";
 import { usePrefersReducedMotion } from "@/lib/useReducedMotion";
@@ -23,7 +22,7 @@ import { ReposWindow } from "../stage3/ReposWindow";
 import { Stage3Static } from "../stage3/Stage3Static";
 import stage3Styles from "../stage3/Stage3.module.css";
 import { loadFoldTextures } from "../story/fold-screen";
-import { buildAboutTimeline } from "./aboutTimeline";
+import { buildCameraTimeline } from "./aboutTimeline";
 import { appendDeviceTimeline } from "./deviceTimeline";
 import { Imac } from "./Imac";
 import { ImacScreen } from "./ImacScreen";
@@ -38,11 +37,12 @@ import { ProjectsAct } from "./projects/ProjectsAct";
 import { ProjectsStatic } from "./projects/ProjectsStatic";
 import { ProjectViewer } from "./projects/ProjectViewer";
 import {
-  appendProjectsSteps,
-  FIRST_PROJECT_STEP,
+  createStoryChannels,
   progressAt,
-  type ProjectsProgress,
-} from "./projects/projectsTimeline";
+  STEP,
+  stepThresholds,
+  type StoryProgress,
+} from "./storySteps";
 import styles from "./Stage1.module.css";
 
 declare global {
@@ -50,6 +50,8 @@ declare global {
     /** Set by `?debug` (see AnimatedStage). */
     __foldRig?: FoldRig;
     __foldState?: { canvasOn: boolean; ready: boolean; contextLost: boolean };
+    /** Set by `?debug`: the current step and where each step starts (px). */
+    __story?: { step: number; thresholds: number[]; start: number };
   }
 }
 
@@ -96,7 +98,7 @@ function AnimatedStage({ onUnsupported }: { onUnsupported: () => void }) {
 
   // The project the steps have unlocked (-1 while locked), whether previews
   // may load, and whether the device has been shown.
-  const [progress, setProgress] = useState<ProjectsProgress>({
+  const [progress, setProgress] = useState<StoryProgress>({
     current: -1,
     near: false,
     deviceShown: false,
@@ -156,43 +158,44 @@ function AnimatedStage({ onUnsupported }: { onUnsupported: () => void }) {
       const imac = imacRef.current;
       if (!section || !imac) return;
 
-      // Camera moves are scrubbed; every reveal is a step (see StepSequencer).
-      const rests = storyRests(projects.length);
-      const parts = buildAboutTimeline({
+      // Camera moves are scrubbed; every content change is a function of the
+      // step, which is itself a function of the scroll position.
+      const count = projects.length;
+      const rests = storyRests(count);
+      const timeline = buildCameraTimeline({
         section,
         imac,
         layoutRef,
         length: rests[rests.length - 1],
       });
-      const projectsEnd = appendProjectsSteps(section, parts.steps, rig);
       appendDeviceTimeline({
-        timeline: parts.timeline,
+        timeline,
         section,
         imac,
         rig,
-        steps: parts.steps,
-        start: projectsEnd,
+        start: rests[rests.length - 4],
       });
-      const { timeline, steps } = parts;
 
+      const thresholds = stepThresholds(count);
       const startOf = (): number => timeline.scrollTrigger?.start ?? 0;
       const px = (vh: number): number => startOf() + vh * window.innerHeight;
-      const thresholds = (): number[] => steps.map((s) => px(s.at));
 
       let nearSeen = false;
-      const sequencer = new StepSequencer(steps, (index) => {
-        const next = progressAt(index);
+      const story = createStoryChannels(section, rig);
+      const debug = new URLSearchParams(window.location.search).has("debug");
+      const driver = new StepDriver(story.channels, (step) => {
+        const next = progressAt(step, count);
         nearSeen ||= next.near;
         setProgress({ ...next, near: nearSeen });
       });
       const evaluate = (scroll: number, instant: boolean): void => {
-        const target = StepSequencer.indexAt(scroll, thresholds());
-        if (instant) sequencer.sync(target);
-        else sequencer.goTo(target);
+        const target = StepDriver.indexAt(scroll, thresholds.map(px));
+        if (instant) driver.sync(target);
+        else driver.goTo(target);
       };
 
       // Follows the scroll everywhere (also before and after the pin), so the
-      // step state is always a function of the scroll position.
+      // step is always a function of the scroll position.
       const follower = ScrollTrigger.create({
         start: 0,
         end: "max",
@@ -200,26 +203,33 @@ function AnimatedStage({ onUnsupported }: { onUnsupported: () => void }) {
         onRefresh: (self) => evaluate(self.scroll(), true),
       });
 
+      if (debug) {
+        Object.defineProperty(window, "__story", {
+          configurable: true,
+          get: () => ({ step: driver.current, thresholds: thresholds.map(px), start: startOf() }),
+        });
+      }
+
       // Clicking a project's name scrolls straight to its step.
       jumpRef.current = (index) => {
-        const y = px(rests[FIRST_PROJECT_STEP + index]);
+        const y = px(thresholds[STEP.UNLOCK + index] + 0.12);
         const instance = lenisRef.current;
         if (instance) instance.scrollTo(y, { duration: 1.1 });
         else window.scrollTo({ top: y });
       };
 
-      // The labels the side nav jumps to.
-      timeline.addLabel("work", rests[3]);
+      // The labels the side nav jumps to ("about", "activity" and "contact"
+      // are on the timeline already).
+      timeline.addLabel("work", rests[2] + 0.15);
       const offs = [
         registerScrollTarget("about", timeline, "about"),
         registerScrollTarget("work", timeline, "work"),
         registerScrollTarget("activity", timeline, "activity"),
         registerScrollTarget("contact", timeline, "contact"),
-        registerSnapSource(() => rests.map(px)),
       ];
       return () => {
         follower.kill();
-        sequencer.kill();
+        story.kill();
         offs.forEach((off) => off());
       };
     },

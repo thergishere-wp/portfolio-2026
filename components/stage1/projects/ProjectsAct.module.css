@@ -28,7 +28,9 @@
   inset: 0;
   z-index: 4;
   display: grid;
-  grid-template-columns: 25vw 17vw 1fr;
+  /* Title and list | the overview card | the device. The card keeps a clear
+     gap (about 4vw) from the device, whose left edge is near 49.5vw. */
+  grid-template-columns: 24vw 15vw 1fr;
   align-items: center;
   gap: 2vw;
   padding: 0 5vw;
@@ -41,7 +43,7 @@
   grid-column: 1;
   grid-row: 1;
 }
-/* Overview cards live in the middle column and overlap the window's edge. */
+/* The overview card lives in the middle column and never reaches the device. */
 .minis {
   grid-column: 2;
   grid-row: 1;
@@ -49,7 +51,6 @@
   align-self: stretch;
   z-index: 7;
   pointer-events: none;
-  transform: translateX(1.4vw);
 }
 
 .title {
@@ -99,15 +100,24 @@
   position: absolute;
   left: 0;
   bottom: 9%;
-  width: calc(100% + 2.4vw);
-  padding: 20px 22px;
+  width: 100%;
+  padding: 18px 20px;
   border-radius: 20px;
   opacity: 0;
   visibility: hidden;
 }
+.mincBody {
+  animation: swap 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes swap {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
 .minic p {
   margin-top: 10px;
-  font-size: 14px;
+  font-size: 13.5px;
   line-height: 1.5;
   color: var(--ink-2);
 }
@@ -160,13 +170,4 @@
   line-height: 1.5;
   color: var(--ink-2);
 }
-.soon {
-  display: inline-flex;
-  margin-top: 12px;
-  font-family: var(--mono);
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(240, 170, 60, 0.18);
-  color: #8a5300;
-}
+

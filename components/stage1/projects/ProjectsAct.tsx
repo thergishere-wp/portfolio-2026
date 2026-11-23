@@ -8,9 +8,9 @@ import styles from "./ProjectsAct.module.css";
 
 /**
  * The projects act's DOM: the title and the list on the left, the overview
- * cards in the middle. The device on the right is 3D (the story's canvas). The
- * steps drive everything here; `current` is the project they have unlocked
- * (-1 while locked).
+ * card in the middle. The device on the right is 3D (the story's canvas). The
+ * step drives everything here; `current` is the project it has unlocked
+ * (-1 while locked). There is ONE overview card: its content swaps.
  */
 export function ProjectsAct({
   current,
@@ -34,10 +34,10 @@ export function ProjectsAct({
           </h2>
           <ProjectList current={current} onSelect={onSelect} />
         </div>
-        <div className={styles.minis}>
-          {projects.map((project) => (
-            <OverviewCard key={project.id} project={project} />
-          ))}
+        {/* The scrub owns this wrapper (it leaves first when the phone folds);
+            the step owns the one card inside it. */}
+        <div className={styles.minis} data-minis>
+          <OverviewCard project={projects[Math.max(0, current)]} />
         </div>
       </div>
     </>

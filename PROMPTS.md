@@ -45,7 +45,7 @@ Build the projects act: project list, overview card, glass window with the anima
 - Live homepage iframes scaled from a virtual 1440×900, mounting only the current and next project.
 - scripts/capture-shots.ts (Playwright) to capture public/shots/<id>.png fallbacks, and scripts/check-frameable.ts to report which sites allow embedding. Run both and show me the results.
 - ProjectViewer: click to expand (FLIP) into an interactive browser window with "Open in new tab" and Close/Esc. Pause Lenis while it's open.
-- KaYo Devs shows its "Launching soon" card until kayodev.com is live.
+- KaYo Devs is live: the preview is https://kayodev.com/ (it was a "Launching soon" card before the launch).
 
 Build, lint, verify in the browser, commit, push, report.
 ```
@@ -65,11 +65,12 @@ My portfolio at https://<PORTFOLIO>.vercel.app shows this site's homepage inside
 Kai-Flo version:
 
 ```
-My portfolio at https://<PORTFOLIO>.vercel.app shows Kai-Flo's LOGIN page inside an iframe. Allow framing ONLY for the login route and only from that origin:
-- For the login page route (and the static assets it needs), set
+My portfolio at https://<PORTFOLIO>.vercel.app shows Kai-Flo's public LANDING page (the route "/") inside an iframe. Allow framing ONLY for "/" (exactly that one path, not its sub-paths) and only from that origin:
+- For the "/" route, set
   Content-Security-Policy: frame-ancestors 'self' https://<PORTFOLIO>.vercel.app
-- Every other route keeps the current framing protection (DENY / frame-ancestors 'none').
-- Don't touch auth, RLS or other headers. Deploy and verify with curl -I on /login and on a protected route.
+  (the framed page loads its own static assets as sub-resources, which are not framed, so they need no change).
+- Every other route (including /login and everything behind it) keeps the current framing protection (DENY / frame-ancestors 'none').
+- Don't touch auth, RLS or other headers. Deploy and verify with curl -I on "/" (header present) and on /login and a protected route (still DENY).
 ```
 
 ## Phase 3: 3D iPhone

@@ -46,13 +46,35 @@ const ICON_SPAN = 0.5;
 const TOTAL = ICON_SPAN + STAGGER * (socials.length - 1);
 
 /**
- * The landscape screen: "Say hello." and five app-style icons spread evenly,
- * each showing the profile handle under the logo. It is laid out upright for
- * landscape (the phone turns), clear of the Dynamic Island. The rig's `apps`
- * progress drives the entrance.
+ * The landscape screen: "Say hello." and five app-style icons (three over two,
+ * so every handle has room), each showing the profile handle under the logo.
+ * It is laid out upright for landscape (the phone turns), clear of the Dynamic
+ * Island on the short edge. The rig's `apps` progress drives the entrance.
  */
 export function SocialsScreen({ rig }: { rig: Pick<FoldRig, "apps"> }) {
   const refs = useRef<Array<HTMLLIElement | null>>([]);
+
+  // Handles never break mid-word: a handle with a space may wrap there (at
+  // most two lines); any other stays on one line. Whichever it is, the type
+  // steps down until it fits its cell.
+  useEffect(() => {
+    const fit = (): void => {
+      refs.current.forEach((li) => {
+        const label = li?.querySelector<HTMLElement>("[data-handle]");
+        if (!label) return;
+        let size = 1;
+        label.style.fontSize = "1em";
+        const lines = (): number =>
+          Math.round(label.getBoundingClientRect().height / parseFloat(getComputedStyle(label).lineHeight));
+        while (size > 0.6 && (label.scrollWidth > label.clientWidth + 0.5 || lines() > 2)) {
+          size -= 0.04;
+          label.style.fontSize = `${size}em`;
+        }
+      });
+    };
+    fit();
+    void document.fonts?.ready.then(fit);
+  }, []);
 
   useEffect(() => {
     const apply = (): void => {
@@ -99,7 +121,12 @@ export function SocialsScreen({ rig }: { rig: Pick<FoldRig, "apps"> }) {
                 <i className={`${styles.socialIcon} ${styles[social.id]}`}>
                   {ICONS[social.id]}
                 </i>
-                <span>{social.handle}</span>
+                <span
+                  data-handle
+                  className={social.handle.includes(" ") ? styles.wrap : undefined}
+                >
+                  {social.handle}
+                </span>
               </a>
             </li>
           ))}

@@ -26,6 +26,8 @@ import {
 import {
   createScreenMaterial,
   createScreenUniforms,
+  LOCK_TEXTURE,
+  type LockTexture,
   type ScreenUniforms,
 } from "./fold-screen";
 
@@ -69,7 +71,10 @@ function syncUniforms(u: ScreenUniforms, rig: FoldRig, textures: Texture[]): voi
   u.uA.value = textures[rig.from] ?? textures[0] ?? null;
   u.uB.value = textures[rig.to] ?? textures[0] ?? null;
   u.uP.value = rig.trans;
-  u.uMode.value = rig.to;
+  // The lock screen (the last texture) has no transition of its own.
+  u.uMode.value = rig.to >= LOCK_TEXTURE ? 0 : rig.to;
+  // The crease shows only while the two halves lie flat.
+  u.uFlat.value = rig.unfold * (1 - rig.shut);
 }
 
 interface FoldModelProps {
@@ -145,6 +150,8 @@ export function FoldModel({
     if (device.current) device.current.position.x = (FOLD.w / 2) * (angle / Math.PI);
 
     syncUniforms(parts.uniforms, rig, textures);
+    // The lock texture shows the time: redraw it when the minute changes.
+    (textures[LOCK_TEXTURE] as LockTexture | undefined)?.redraw?.();
   });
 
   const bottomY = -FOLD.h / 2 - 0.0009;

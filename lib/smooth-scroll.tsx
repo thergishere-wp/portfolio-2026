@@ -8,9 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import Lenis from "lenis";
-import Snap from "lenis/snap";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
-import { attachSnap } from "@/lib/snap-points";
 import { usePrefersReducedMotion } from "@/lib/useReducedMotion";
 
 const LenisContext = createContext<Lenis | null>(null);
@@ -46,43 +44,38 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
     }
 
     html.classList.add("locked");
-    const instance = new Lenis({ lerp: 0.085, wheelMultiplier: 0.9 });
+    // No snapping, ever: the user always controls the position. The wheel
+    // moves the page by exactly what it reports, smoothed by a light lerp, so
+    // motion settles within a few hundred ms of the last input.
+    const instance = new Lenis({ lerp: 0.1, wheelMultiplier: 1 });
     instance.on("scroll", ScrollTrigger.update);
-    const tick = (time: number): void => instance.raf(time * 1000);
+    // A lerp only ever approaches its target, so the last pixels would crawl
+    // for another second. Once within SETTLE_PX (about 440 ms after a 100 px
+    // tick) the page lands on the target: no drift after the input stops.
+    const SETTLE_PX = 8;
+    const tick = (time: number): void => {
+      instance.raf(time * 1000);
+      const left = instance.targetScroll - instance.animatedScroll;
+      if (!instance.isStopped && left !== 0 && Math.abs(left) < SETTLE_PX) {
+        // scrollTo ignores a target equal to its own targetScroll, so point
+        // that at where we are first; the jump then lands and ends the glide.
+        const target = instance.targetScroll;
+        instance.targetScroll = instance.animatedScroll;
+        instance.scrollTo(target, { immediate: true, force: true });
+      }
+    };
     gsap.ticker.add(tick);
     gsap.ticker.lagSmoothing(0);
-
-    // Lenis Snap settles on the step labels. "lock": one gesture moves to the
-    // next label in its direction, so a small scroll always makes something
-    // happen. It pauses and resumes together with Lenis (intro, open windows).
-    const snap = new Snap(instance, {
-      type: "lock",
-      // The default (50% of the viewport) would ignore the long camera
-      // segments: a locked gesture always goes to the next label.
-      distanceThreshold: Number.MAX_SAFE_INTEGER,
-      duration: 0.9,
-      easing: (t: number): number => 1 - Math.pow(1 - t, 3),
-      debounce: 60,
-    });
-    attachSnap(snap);
-    const stop = instance.stop.bind(instance);
-    const start = instance.start.bind(instance);
-    instance.stop = (): void => {
-      stop();
-      snap.stop();
-    };
-    instance.start = (): void => {
-      start();
-      snap.start();
-    };
     instance.stop();
+    // `?debug` exposes the instance (and the wheel deltas it sees) to tests.
+    if (new URLSearchParams(window.location.search).has("debug")) {
+      Reflect.set(window, "__lenis", instance);
+    }
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Lenis is an external system created on mount
     setLenis(instance);
 
     return () => {
       gsap.ticker.remove(tick);
-      attachSnap(null);
-      snap.destroy();
       instance.destroy();
       setLenis(null);
       html.classList.remove("locked");

@@ -15,6 +15,7 @@
     "og": "tsx scripts/capture-og.ts",
     "check:phone": "tsx scripts/phone-corners.ts",
     "check:continuity": "tsx scripts/check-continuity.ts",
+    "check:scroll": "tsx scripts/check-scroll.ts",
     "check:3d": "tsx scripts/check-3d.ts"
   },
   "dependencies": {

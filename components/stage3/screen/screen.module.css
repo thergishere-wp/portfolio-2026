@@ -404,6 +404,23 @@
 }
 .rot {
   position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 0 1.4em;
+  background:
+    radial-gradient(80% 90% at 80% 20%, rgba(91, 61, 245, 0.12), transparent 60%),
+    #fbfaf8;
+}
+/* Landscape: the screen is turned, so the content is laid out in the turned
+   frame (width and height swap) and counter-rotated. The Dynamic Island lies
+   along the phone's top edge, which is the right edge here: the content keeps
+   clear of its band (1em margin + 2.4em thick + 1em) on both sides. */
+.scr[data-landscape="true"] .rot {
+  inset: auto;
   left: 50%;
   top: 50%;
   width: var(--sh);
@@ -411,22 +428,14 @@
   margin-left: calc(var(--sh) / -2);
   margin-top: calc(var(--sw) / -2);
   transform: rotate(-90deg);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  /* The Dynamic Island ends up on the right in landscape, and it grows
-     inward ("Available for projects", a hovered handle): keep clear of it. */
-  padding: 0 13.4em 0 2.4em;
-  background:
-    radial-gradient(80% 90% at 80% 20%, rgba(91, 61, 245, 0.12), transparent 60%),
-    #fbfaf8;
+  /* Clear of the island's band on the right (1em + 2.4em + 1em); a little
+     air on the left, and the content sits centred in what is left. */
+  padding: 0 4.9em 0 1.6em;
 }
 .hello {
   font-family: var(--serif);
   font-weight: 400;
-  font-size: 2.6em;
+  font-size: 2.3em;
   letter-spacing: -0.02em;
   line-height: 1;
 }
@@ -438,13 +447,24 @@
   font-size: 0.95em;
   color: var(--ink-2);
 }
+/* Three icons over two: each cell is wide enough for a whole handle. */
 .apps {
-  margin-top: 1.8em;
+  margin-top: 1.4em;
   width: 100%;
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0.6em;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1em 0.6em;
+}
+.apps li {
+  grid-column: span 2;
+  min-width: 0;
+}
+.apps li:nth-child(4) {
+  grid-column: 2 / span 2;
+}
+.apps li:nth-child(5) {
+  grid-column: 4 / span 2;
 }
 .socialLink {
   display: flex;
@@ -460,10 +480,21 @@
   transform: translateY(-0.3em);
 }
 .socialLink span {
+  display: block;
   font-family: var(--mono);
   max-width: 100%;
-  overflow-wrap: anywhere;
   line-height: 1.3;
+  /* Never break inside a word: one line, unless the handle has a space. */
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  hyphens: none;
+  /* text-wrap-style, not the text-wrap shorthand: the shorthand would also
+     reset text-wrap-mode and quietly undo the nowrap above. */
+  text-wrap-style: balance;
+}
+.socialLink span.wrap {
+  white-space: normal;
 }
 .socialIcon {
   width: 4.6em;
