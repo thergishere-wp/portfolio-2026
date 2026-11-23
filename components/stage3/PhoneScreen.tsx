@@ -65,7 +65,7 @@ export function PhoneScreen({
         <LogoScreen />
       </div>
       <div ref={appRef} className={styles.layer}>
-        <AppScreen />
+        <AppScreen rig={rig} />
       </div>
       <div ref={socialRef} className={styles.layer}>
         <SocialsScreen rig={rig} />

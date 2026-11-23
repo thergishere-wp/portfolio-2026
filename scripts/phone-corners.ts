@@ -58,7 +58,7 @@ async function main(): Promise<void> {
   const page = await context.newPage();
   await page.goto(url, { waitUntil: "networkidle" });
   await page.waitForTimeout(1500);
-  await page.keyboard.press("Space"); // skip the intro
+  await page.keyboard.press("Shift"); // skip the intro
   await page.waitForTimeout(800);
 
   for (const pose of POSES) {

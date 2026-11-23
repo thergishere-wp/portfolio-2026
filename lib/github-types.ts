@@ -33,11 +33,25 @@ export interface ActivityPayload {
   configured: boolean;
   /** Push groups, newest first. */
   pushes: PushGroup[];
-  /** One level (0 to 3) per day for the last ~20 weeks, column by column. */
-  levels: number[] | null;
+  /**
+   * One entry per commit of the last 14 days, newest first. Timestamps only:
+   * the Summary screen counts them (per hour, per day, per repository).
+   */
+  commits: CommitStamp[];
   stale: boolean;
   error: boolean;
   fetchedAt: string;
+}
+
+/**
+ * A commit reduced to when and where. It carries no message and no URL, so it
+ * is safe for private repositories (the repository name is already shown).
+ */
+export interface CommitStamp {
+  repo: string;
+  private: boolean;
+  /** ISO timestamp (UTC) of the commit. */
+  at: string;
 }
 
 export interface PushGroup {

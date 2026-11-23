@@ -1,0 +1,387 @@
+/*
+ * The Summary tab ("Screen Time for code"). Light, Apple-minimal: white cards
+ * on the screen's paper, violet and its tints for data, neutrals for the rest.
+ * Sized in em from the phone screen's base font size.
+ */
+.scroll {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: start;
+  gap: 0.8em;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 1.4em;
+  scrollbar-width: none;
+}
+.scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.card,
+.rings {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 1.1em;
+  padding: 1em;
+}
+.cardTitle {
+  font-family: var(--mono);
+  font-size: 0.72em;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.empty {
+  font-family: var(--mono);
+  font-size: 0.78em;
+  color: var(--ink-3);
+  text-align: center;
+  padding: 1em 0;
+}
+.skeleton {
+  display: grid;
+  gap: 0.8em;
+}
+.skeleton i {
+  display: block;
+  height: 9em;
+  border-radius: 1.1em;
+  background: linear-gradient(90deg, #fff 0%, #f1efeb 50%, #fff 100%) 0 0 / 200% 100%;
+  animation: shim 1.6s linear infinite;
+}
+@keyframes shim {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* ---------- Rings ---------- */
+.ring_commits {
+  --c: #5b3df5;
+}
+.ring_days {
+  --c: #8a76f7;
+}
+.ring_repos {
+  --c: #b8abfb;
+}
+.rings {
+  display: grid;
+  grid-template-columns: 8em 1fr;
+  gap: 1em;
+  align-items: center;
+}
+.ringSvg {
+  width: 8em;
+  height: 8em;
+  transform: rotate(-90deg);
+}
+.ringTrack {
+  fill: none;
+  stroke: var(--c);
+  opacity: 0.14;
+}
+.ringArc {
+  fill: none;
+  stroke: var(--c);
+  stroke-linecap: round;
+  transition:
+    stroke-dashoffset 1.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.3s;
+}
+.ringStats {
+  display: grid;
+  gap: 0.7em;
+}
+.ringStat dt {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 0.72em;
+  color: var(--ink-3);
+  line-height: 1.2;
+}
+.ringStat dt::before {
+  content: "";
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  background: var(--c);
+  flex: none;
+}
+.ringStat dd {
+  margin: 0.1em 0 0 1.2em;
+  display: flex;
+  align-items: baseline;
+  gap: 0.15em;
+}
+.ringStat dd b {
+  font-size: 1.55em;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.ringStat dd span {
+  font-size: 0.8em;
+  color: var(--ink-3);
+}
+
+/* ---------- Coding time chart ---------- */
+.chartHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.8em;
+}
+.bigNumber {
+  margin-top: 0.3em;
+  font-size: 0.82em;
+  color: var(--ink-2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35em;
+}
+.bigNumber b {
+  font-size: 2em;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  line-height: 1;
+}
+.bigNumber span {
+  flex-basis: 100%;
+  font-size: 0.9em;
+  color: var(--ink-3);
+}
+.toggle {
+  display: inline-grid;
+  grid-auto-flow: column;
+  padding: 0.18em;
+  border-radius: 0.7em;
+  background: rgba(20, 20, 20, 0.06);
+}
+.toggle button {
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.78em;
+  font-weight: 550;
+  padding: 0.4em 0.9em;
+  border-radius: 0.55em;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+.toggle button.toggleOn {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.plot {
+  position: relative;
+  margin-top: 0.9em;
+  height: 7.6em;
+}
+.bars {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(24, 1fr);
+  gap: 0.18em;
+  align-items: end;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+.barsWeek {
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.55em;
+}
+.bar {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.bar i {
+  display: block;
+  width: 100%;
+  min-height: 2px;
+  border-radius: 0.2em 0.2em 0 0;
+  background: rgba(20, 20, 20, 0.16);
+  transition:
+    height 0.9s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 0.2s;
+}
+.barsWeek .bar i {
+  border-radius: 0.35em 0.35em 0 0;
+}
+.bar.barFuture i {
+  background: rgba(20, 20, 20, 0.07);
+}
+.bar.barPeak i {
+  background: var(--violet);
+}
+.bar.barSelected i {
+  background: #8a76f7;
+}
+.bar.barSelected.barPeak i {
+  background: var(--violet);
+}
+.bar:hover i {
+  background: rgba(20, 20, 20, 0.26);
+}
+.bar.barPeak:hover i {
+  background: var(--violet);
+}
+/* A wider hit area than the thin bar. */
+.bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 -0.12em;
+}
+
+.avg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  border-top: 1.5px dotted rgba(20, 20, 20, 0.4);
+  pointer-events: none;
+}
+.avg span {
+  position: absolute;
+  right: 0;
+  bottom: 0.2em;
+  padding: 0 0.3em;
+  font-family: var(--mono);
+  font-size: 0.62em;
+  color: var(--ink-3);
+  background: #fff;
+}
+
+.axis {
+  position: relative;
+  height: 1.5em;
+  margin-top: 0.4em;
+  display: flex;
+  justify-content: space-around;
+  font-family: var(--mono);
+  font-size: 0.64em;
+  color: var(--ink-3);
+}
+.tick {
+  position: absolute;
+  top: 0;
+}
+.weekTick {
+  flex: 1;
+  text-align: center;
+}
+.weekToday {
+  color: var(--ink);
+  font-weight: 600;
+}
+.caption {
+  margin-top: 0.3em;
+  font-size: 0.78em;
+  font-weight: 550;
+  color: var(--violet);
+}
+
+/* ---------- Most active ---------- */
+.repoList {
+  list-style: none;
+  display: grid;
+  gap: 0.85em;
+  margin-top: 0.8em;
+}
+.repoRow {
+  display: grid;
+  grid-template-columns: 2.4em 1fr;
+  gap: 0.75em;
+  align-items: center;
+}
+.repoIcon {
+  width: 2.4em;
+  height: 2.4em;
+  border-radius: 0.65em;
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: 0.82em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  background: rgba(91, 61, 245, 0.1);
+  color: var(--violet);
+}
+.repoIcon[data-tone="1"] {
+  background: rgba(20, 20, 20, 0.07);
+  color: var(--ink-2);
+}
+.repoIcon[data-tone="2"] {
+  background: rgba(138, 118, 247, 0.16);
+  color: #6a53ee;
+}
+.repoIcon[data-tone="3"] {
+  background: rgba(20, 20, 20, 0.05);
+  color: var(--ink-3);
+}
+.repoBody {
+  min-width: 0;
+}
+.repoTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.6em;
+}
+.repoName {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  min-width: 0;
+  font-size: 0.85em;
+  font-weight: 550;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lock {
+  display: inline-flex;
+  color: var(--ink-3);
+}
+.lock svg {
+  width: 0.95em;
+  height: 0.95em;
+}
+.repoCount {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 0.7em;
+  color: var(--ink-3);
+}
+.repoBar {
+  display: block;
+  margin-top: 0.4em;
+  height: 0.32em;
+  border-radius: 99px;
+  background: rgba(20, 20, 20, 0.06);
+  overflow: hidden;
+}
+.repoBar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--violet);
+  transition: width 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+}

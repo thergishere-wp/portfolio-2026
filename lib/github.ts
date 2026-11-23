@@ -2,6 +2,7 @@ import "server-only";
 import { privateRepoAllowList } from "@/content/projects";
 import type {
   ActivityPayload,
+  CommitStamp,
   PushGroup,
   RepoSummary,
   ReposPayload,
@@ -19,8 +20,9 @@ const USER = process.env.GITHUB_USER ?? "thergishere-wp";
 const RECENT_REPOS = 12;
 const WINDOW_DAYS = 14;
 const GROUP_GAP_MS = 30 * 60_000;
-const CALENDAR_WEEKS = 20;
 const MAX_PUSHES = 30;
+/** Commits fetched per repository: enough for a busy fortnight. */
+const COMMITS_PER_REPO = 100;
 
 /** Linguist colours for the languages likely to show up. */
 const LANGUAGE_COLORS: Readonly<Record<string, string>> = {
@@ -60,21 +62,6 @@ interface GhCommit {
     author: { date: string } | null;
     committer: { date: string } | null;
   };
-}
-
-interface GhCalendar {
-  data?: {
-    viewer?: {
-      contributionsCollection?: {
-        contributionCalendar?: {
-          weeks: Array<{
-            contributionDays: Array<{ date: string; contributionCount: number }>;
-          }>;
-        };
-      };
-    };
-  };
-  errors?: unknown;
 }
 
 export function isConfigured(): boolean {
@@ -164,21 +151,36 @@ function sinceIso(): string {
   return d.toISOString();
 }
 
-async function loadPushes(repos: GhRepo[]): Promise<PushGroup[]> {
+/** Commits as bare timestamps: when and where, never what (see CommitStamp). */
+function toStamps(repo: GhRepo, commits: GhCommit[]): CommitStamp[] {
+  return commits.map((commit) => ({
+    repo: repo.name,
+    private: repo.private,
+    at: new Date(timeOf(commit)).toISOString(),
+  }));
+}
+
+interface LoadedPushes {
+  pushes: PushGroup[];
+  commits: CommitStamp[];
+}
+
+async function loadPushes(repos: GhRepo[]): Promise<LoadedPushes> {
   const recent = repos.slice(0, RECENT_REPOS);
   const since = sinceIso();
   let failures = 0;
 
   const perRepo = await Promise.all(
-    recent.map(async (repo) => {
+    recent.map(async (repo): Promise<LoadedPushes> => {
       try {
-        const commits = await gh<GhCommit[]>(
-          `/repos/${repo.owner.login}/${repo.name}/commits?author=${encodeURIComponent(USER)}&since=${since}&per_page=20`,
-        );
-        return groupPushes(repo, commits ?? []);
+        const commits =
+          (await gh<GhCommit[]>(
+            `/repos/${repo.owner.login}/${repo.name}/commits?author=${encodeURIComponent(USER)}&since=${since}&per_page=${COMMITS_PER_REPO}`,
+          )) ?? [];
+        return { pushes: groupPushes(repo, commits), commits: toStamps(repo, commits) };
       } catch {
         failures += 1;
-        return [];
+        return { pushes: [], commits: [] };
       }
     }),
   );
@@ -187,38 +189,15 @@ async function loadPushes(repos: GhRepo[]): Promise<PushGroup[]> {
   if (recent.length > 0 && failures === recent.length) {
     throw new Error("GitHub commits failed for every repository");
   }
-  return perRepo
-    .flat()
-    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
-    .slice(0, MAX_PUSHES);
-}
-
-/** Last ~20 weeks of the contribution calendar as one 0-3 level per day. */
-async function loadLevels(): Promise<number[] | null> {
-  const body = await gh<GhCalendar>("/graphql", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      query:
-        "query { viewer { contributionsCollection { contributionCalendar { weeks { contributionDays { date contributionCount } } } } } }",
-    }),
-  });
-  const weeks =
-    body?.data?.viewer?.contributionsCollection?.contributionCalendar?.weeks;
-  if (!weeks) return null;
-
-  const counts = weeks.slice(-CALENDAR_WEEKS).flatMap((week) => {
-    const days = week.contributionDays.map((d) => d.contributionCount);
-    // The current week is partial: pad it to a full column.
-    while (days.length < 7) days.push(0);
-    return days;
-  });
-  const max = Math.max(...counts, 1);
-  return counts.map((count) => {
-    if (count === 0) return 0;
-    const ratio = count / max;
-    return ratio <= 0.25 ? 1 : ratio <= 0.6 ? 2 : 3;
-  });
+  const newestFirst = (a: { at: string }, b: { at: string }): number =>
+    new Date(b.at).getTime() - new Date(a.at).getTime();
+  return {
+    pushes: perRepo
+      .flatMap((r) => r.pushes)
+      .sort(newestFirst)
+      .slice(0, MAX_PUSHES),
+    commits: perRepo.flatMap((r) => r.commits).sort(newestFirst),
+  };
 }
 
 async function loadRepos(): Promise<ReposPayload> {
@@ -234,15 +213,11 @@ async function loadRepos(): Promise<ReposPayload> {
 
 async function loadActivity(): Promise<ActivityPayload> {
   const repos = await listRepos();
-  // The calendar is nice to have; a failure there must not hide the pushes.
-  const [pushes, levels] = await Promise.all([
-    loadPushes(repos),
-    loadLevels().catch(() => null),
-  ]);
+  const { pushes, commits } = await loadPushes(repos);
   return {
     configured: true,
     pushes,
-    levels,
+    commits,
     stale: false,
     error: false,
     fetchedAt: new Date().toISOString(),
@@ -303,7 +278,7 @@ const loadReposCached = cachedLoader("repos", loadRepos, () => ({
 const loadActivityCached = cachedLoader("activity", loadActivity, () => ({
   configured: true,
   pushes: [],
-  levels: null,
+  commits: [],
   stale: true,
   error: true,
   fetchedAt: new Date().toISOString(),
@@ -332,7 +307,7 @@ export async function getActivity(): Promise<ActivityPayload> {
     return {
       configured: false,
       pushes: [],
-      levels: null,
+      commits: [],
       stale: false,
       error: false,
       fetchedAt: new Date().toISOString(),
