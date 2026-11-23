@@ -1,0 +1,118 @@
+/* The iMac. All dimensions come from CSS variables set by useStageLayout. */
+.imac {
+  position: absolute;
+  left: var(--left);
+  top: var(--top);
+  width: var(--bodyW);
+  will-change: transform;
+}
+.outline {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.outline path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.2;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  vector-effect: non-scaling-stroke;
+}
+.body {
+  position: relative;
+  width: var(--bodyW);
+  height: var(--bodyH);
+  border-radius: var(--r);
+  opacity: 0;
+  background: linear-gradient(180deg, #fcfcfb, #f6f5f3);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 #fff,
+    0 50px 90px -40px rgba(40, 30, 20, 0.35),
+    0 18px 40px -22px rgba(40, 30, 20, 0.25);
+}
+.chin {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--chin);
+  border-radius: 0 0 var(--r) var(--r);
+  background: linear-gradient(180deg, #eceaf1, #e2dfe8);
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+.screen {
+  position: absolute;
+  left: var(--b);
+  top: var(--b);
+  width: var(--ws);
+  height: var(--hs);
+  overflow: hidden;
+  border-radius: 3px;
+  background: #0d0d0f;
+}
+.screenOff {
+  position: absolute;
+  inset: 0;
+  background: #0d0d0f;
+  z-index: 5;
+  pointer-events: none;
+}
+.glare {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0) 32%
+  );
+}
+.stand {
+  position: relative;
+  width: var(--bodyW);
+  height: calc(var(--neck) + var(--foot));
+  opacity: 0;
+}
+.neck {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 0;
+  width: var(--neckW);
+  height: var(--neck);
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.14), rgba(0, 0, 0, 0) 26%),
+    linear-gradient(90deg, #d3d0d9, #eceaf0 38%, #e2dfe7 70%, #cfccd6);
+}
+.foot {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: var(--neck);
+  width: var(--footW);
+  height: var(--foot);
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(180deg, #e8e6ec, #c9c6cf);
+}
+.shadow {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--bodyH) + var(--neck) + var(--foot) - 6px);
+  width: calc(var(--bodyW) * 1.05);
+  height: 44px;
+  transform: translateX(-50%);
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    rgba(40, 30, 20, 0.28),
+    transparent 70%
+  );
+  filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}

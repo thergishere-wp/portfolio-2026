@@ -1,0 +1,47 @@
+.stage {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 1;
+  perspective: 1600px;
+}
+.desk {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 1;
+}
+.deskMark {
+  font-size: 17vw;
+  opacity: 0;
+}
+.track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 2;
+  will-change: transform;
+}
+
+/* Reduced motion: no iMac, no pinning. Each panel is a plain section. */
+.static {
+  position: relative;
+  z-index: 1;
+}
+.static > section {
+  height: auto;
+  min-height: 100vh;
+  padding: 12vh 7vw;
+}
+@media (max-width: 900px) {
+  .static > section {
+    grid-template-columns: 1fr;
+    gap: 6vh;
+  }
+  .static > section > div:last-child {
+    justify-self: stretch;
+    width: auto;
+  }
+}

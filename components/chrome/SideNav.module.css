@@ -1,0 +1,61 @@
+.nav {
+  position: fixed;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+  display: grid;
+  gap: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s;
+}
+.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.item {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.item span {
+  opacity: 0;
+  transform: translateX(6px);
+  transition: 0.3s;
+}
+.item i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  transition: 0.3s;
+}
+.nav:hover .item span,
+.item:focus-visible span,
+.on span {
+  opacity: 1;
+  transform: none;
+}
+.on {
+  color: var(--violet);
+}
+.on i {
+  width: 18px;
+  border-radius: 3px;
+}
+/* Sections whose stage has not been built yet. */
+.item:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

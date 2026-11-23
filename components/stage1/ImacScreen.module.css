@@ -1,0 +1,45 @@
+/* inner = the screen at full "cover" size; safe = exactly one viewport, centred */
+.inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--cw);
+  height: var(--ch);
+  transform: scale(var(--s));
+  transform-origin: 0 0;
+  overflow: hidden;
+  background: radial-gradient(
+    90% 80% at 25% 15%,
+    #fff 0%,
+    #f5f3ef 50%,
+    #ece9e3 100%
+  );
+}
+.inner::before {
+  content: "";
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  right: -18vw;
+  top: -22vw;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(91, 61, 245, 0.1), transparent 65%);
+}
+.inner::after {
+  content: "";
+  position: absolute;
+  width: 50vw;
+  height: 50vw;
+  left: -15vw;
+  bottom: -25vw;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 190, 120, 0.16), transparent 65%);
+}
+.safe {
+  position: absolute;
+  left: var(--sx);
+  top: var(--sy);
+  width: var(--vw);
+  height: var(--vh);
+  overflow: hidden;
+}

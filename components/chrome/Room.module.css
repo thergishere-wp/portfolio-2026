@@ -1,0 +1,76 @@
+.room {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: radial-gradient(
+    130% 85% at 50% 18%,
+    #fdfcfa 0%,
+    #f4f2ee 42%,
+    #e6e3dd 100%
+  );
+}
+.floor {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  top: 64%;
+  bottom: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(60, 50, 40, 0),
+    rgba(60, 50, 40, 0.035) 22%,
+    rgba(60, 50, 40, 0.075)
+  );
+}
+.cove {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  top: 57%;
+  height: 14%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255, 255, 255, 0.75),
+    transparent
+  );
+  filter: blur(24px);
+}
+/* Window light: soft slats, masked to fade at the edges. */
+.sun {
+  position: absolute;
+  width: 62vw;
+  height: 110vh;
+  left: 46%;
+  top: -18%;
+  transform: skewX(-22deg) rotate(10deg);
+  opacity: 0.85;
+  filter: blur(16px);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 206, 150, 0.28) 0 23%,
+      rgba(0, 0, 0, 0) 23% 26%
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0) 0 30%,
+      #f2f0ec 30% 32%
+    );
+  -webkit-mask-image: radial-gradient(
+    60% 55% at 50% 50%,
+    #000 40%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(60% 55% at 50% 50%, #000 40%, transparent 100%);
+}
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    120% 90% at 50% 40%,
+    transparent 55%,
+    rgba(40, 32, 24, 0.1) 100%
+  );
+}
