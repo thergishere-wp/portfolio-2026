@@ -3,10 +3,23 @@
 /* ================= Tokens ================= */
 :root {
   --ink: #141414;
-  --ink-2: #55534f;
+  /*
+   * Time of day (see lib/room-light.ts): --night runs 0 (day) to 1 (night) and
+   * the text tokens darken with it, so contrast holds when the room dims.
+   */
+  --ink-2: color-mix(in srgb, #55534f calc(100% - var(--night) * 100%), #3a3835);
   /* Darkened from #8e8b85 (2.98:1) to pass WCAG AA 4.5:1 on the paper. */
-  --ink-3: #67645e;
+  --ink-3: color-mix(in srgb, #67645e calc(100% - var(--night) * 100%), #45423d);
   --paper: #f2f0ec;
+  --night: 0;
+  --dim: 0;
+  --fx: 1;
+  --beam-o: 0.85;
+  --beam-rot: 10deg;
+  --sun-rgb: 255, 206, 150;
+  --sun-a: 0.28;
+  --tint-rgb: 255, 190, 130;
+  --tint-a: 0;
   --violet: #5b3df5;
   --serif: var(--font-instrument-serif), "Times New Roman", serif;
   --sans: var(--font-geist-sans), system-ui, sans-serif;

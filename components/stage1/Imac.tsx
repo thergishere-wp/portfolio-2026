@@ -66,6 +66,13 @@ export function Imac({ ref, layout, children }: ImacProps) {
         <div className={styles.foot} />
       </div>
       <div className={styles.shadow} data-intro="shadow" />
+      {/* The desk and keyboard belong to the iMac, so they leave with it. */}
+      <div className={styles.desk} data-intro="stand" aria-hidden="true">
+        <div className={styles.deskTop} />
+        <div className={styles.deskGlow} />
+        <div className={styles.deskEdge} />
+        <div className={styles.keyboard} />
+      </div>
     </div>
   );
 }
