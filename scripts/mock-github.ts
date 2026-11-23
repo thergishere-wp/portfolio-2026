@@ -22,6 +22,8 @@ const START = Date.now();
 const ago = (minutes: number): string =>
   new Date(START - minutes * 60_000).toISOString();
 let pushAt = "";
+let pushedPrivate = false;
+let pushPrivateAt = "";
 
 const repos = () => [
   { name: "portfolio-2026", private: false, description: "This site. White room, iMac, iPhone.", language: "TypeScript", pushed_at: ago(6), updated_at: ago(6), html_url: "https://github.com/thergishere-wp/portfolio-2026", owner: { login: "thergishere-wp" } },
@@ -48,6 +50,10 @@ function commitsFor(name: string) {
       ];
     case "kaiflo":
       return [
+        // Appears after GET /__push?private=1 (a push to a private repo).
+        ...(pushedPrivate
+          ? [{ ...commit("SECRET-PRIVATE-MESSAGE brand new", 0, name), commit: { message: "SECRET-PRIVATE-MESSAGE brand new", author: { date: pushPrivateAt }, committer: { date: pushPrivateAt } } }]
+          : []),
         commit("SECRET-PRIVATE-MESSAGE fix timetable clash", 40, name),
         commit("SECRET-PRIVATE-MESSAGE rls policy", 55, name),
       ];
@@ -91,6 +97,11 @@ http
       return send(res, 200, { failing });
     }
     if (url.pathname === "/__push") {
+      if (url.searchParams.get("private") === "1") {
+        pushedPrivate = true;
+        pushPrivateAt = new Date().toISOString();
+        return send(res, 200, { pushedPrivate });
+      }
       pushedNow = true;
       pushAt = new Date().toISOString();
       return send(res, 200, { pushedNow });

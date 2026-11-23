@@ -3,6 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { contact, socials, type SocialId } from "@/content/socials";
 import { gsap } from "@/lib/gsap";
+import { setIslandHover } from "@/lib/island-store";
 import type { FoldRig } from "@/lib/fold-rig";
 import styles from "./screen.module.css";
 
@@ -86,6 +87,11 @@ export function SocialsScreen({ rig }: { rig: Pick<FoldRig, "apps"> }) {
                 className={styles.socialLink}
                 href={social.href}
                 aria-label={social.platform}
+                // The Dynamic Island morphs to show this handle.
+                onMouseEnter={() => setIslandHover(social.handle)}
+                onMouseLeave={() => setIslandHover(null)}
+                onFocus={() => setIslandHover(social.handle)}
+                onBlur={() => setIslandHover(null)}
                 {...(social.external
                   ? { target: "_blank", rel: "noopener noreferrer" }
                   : {})}

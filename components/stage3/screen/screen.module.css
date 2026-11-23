@@ -416,8 +416,9 @@
   justify-content: center;
   align-items: center;
   text-align: center;
-  /* The Dynamic Island ends up on the right in landscape: keep clear of it. */
-  padding: 0 5.2em 0 3em;
+  /* The Dynamic Island ends up on the right in landscape, and it grows
+     inward ("Available for projects", a hovered handle): keep clear of it. */
+  padding: 0 13.4em 0 2.4em;
   background:
     radial-gradient(80% 90% at 80% 20%, rgba(91, 61, 245, 0.12), transparent 60%),
     #fbfaf8;

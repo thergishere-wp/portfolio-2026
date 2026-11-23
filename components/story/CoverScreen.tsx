@@ -11,6 +11,7 @@ import { SocialsScreen } from "../stage3/screen/SocialsScreen";
 import type { ScreenMetrics } from "../stage3/phone-geometry";
 import screen from "../stage3/screen/screen.module.css";
 import styles from "./cover.module.css";
+import { DynamicIsland } from "./DynamicIsland";
 
 /** Show a layer at `value` (0 to 1): fade it, hide it when off, only let it take clicks when on. */
 function setLayer(el: HTMLElement, value: number): void {
@@ -72,7 +73,7 @@ export function CoverScreen({
 
   return (
     <div ref={rootRef} className={screen.scr} style={size}>
-      <div className={screen.island} aria-hidden="true" />
+      <DynamicIsland rig={rig} />
       <div ref={lockRef} className={cn(screen.layer, styles.lockScreen)}>
         <svg
           className={styles.lockIcon}
