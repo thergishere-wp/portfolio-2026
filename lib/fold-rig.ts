@@ -19,6 +19,8 @@ export interface FoldRig {
   scale: number;
   /** Floor shadow opacity. */
   shadow: number;
+  /** Strength of the idle float (1 normally, 0 under `?still`, which tests use). */
+  bob: number;
   /** Scrubbed: 0 = as the steps left it, 1 = folded shut for the Activity phone. */
   shut: number;
   /** Time-based presence, 0 (hidden) to 1. */
@@ -83,6 +85,7 @@ export function createFoldRig(): FoldRig {
     ...PROJECTS_POSE,
     scale: 1,
     shadow: 0,
+    bob: 1,
     shut: 0,
     show: 0,
     unfold: 0,
@@ -98,6 +101,11 @@ export function createFoldRig(): FoldRig {
     social: 0,
     apps: 0,
   };
+}
+
+/** Stops the device's idle float (a time-based motion), so tests compare only scroll-driven state. */
+export function holdStill(rig: FoldRig): void {
+  rig.bob = 0;
 }
 
 /** Hinge angle in radians: 0 = flat and open, PI = folded shut. */

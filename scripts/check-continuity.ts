@@ -28,7 +28,7 @@ const PIXEL_SHARE = 0.004;
 type Signature = Record<string, string>;
 
 const SIGNATURE_SCRIPT = `(() => {
-  const sel = '[data-reveal],[data-rv],[data-rv-win],[data-p],[data-ptext],[data-minic],[data-preview],[data-win],[data-lock],[data-shackle],[data-orb],[data-a2-rv],[data-menubar],[data-desktop],[data-dock],[data-about-window],[data-screen],[data-screen-mark],[data-glare],[data-repos],[data-a3c],[data-a3-foot],[data-step]';
+  const sel = '[data-reveal],[data-rv],[data-rv-win],[data-p],[data-ptext],[data-minic],[data-preview],[data-win],[data-lock],[data-shackle],[data-orb],[data-a2-rv],[data-menubar],[data-desktop],[data-dock],[data-about-window],[data-screen],[data-screen-mark],[data-glare],[data-repos],[data-a3c],[data-a3-foot],[data-step],[data-projects-dom],[data-inner],[data-lock]';
   const out = {};
   const counts = {};
   document.querySelectorAll(sel).forEach((el) => {
@@ -63,15 +63,23 @@ async function main(): Promise<void> {
     deviceScaleFactor: 0.5,
   });
   const page = await context.newPage();
-  await page.goto(url + (url.includes("?") ? "&" : "?") + "hour=12", {
+  await page.goto(url + (url.includes("?") ? "&" : "?") + "hour=12&still&debug", {
     waitUntil: "networkidle",
   });
   // Live pages animate on their own (carousels, video), which is not a scroll
   // effect: hide the iframes so only our own animation is compared.
-  await page.addStyleTag({ content: "iframe { visibility: hidden !important; }" });
+  // CSS loops (the island's pulse, leaf sway) and the device's idle float are
+  // time-based life, not scroll state: stop them too (the page gets ?still).
+  await page.addStyleTag({
+    content: "iframe { visibility: hidden !important; } * { animation: none !important; }",
+  });
   await page.waitForTimeout(1500);
   await page.keyboard.press("Shift"); // skip the intro
   await page.waitForTimeout(1200);
+  // The scene must be up before sampling, so the first visit to a position
+  // does not meet a loading stand-in that the second visit does not.
+  await page.waitForFunction("window.__foldState?.ready === true", null, { timeout: 180_000 });
+  await page.waitForTimeout(4000);
 
   const total = await page.evaluate(
     () => document.documentElement.scrollHeight - window.innerHeight,

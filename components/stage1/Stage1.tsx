@@ -6,7 +6,7 @@ import { RgMark } from "@/components/chrome/RgMark";
 import { projects } from "@/content/projects";
 import { contact } from "@/content/socials";
 import { cn } from "@/lib/cn";
-import { createFoldRig, type FoldRig } from "@/lib/fold-rig";
+import { createFoldRig, holdStill, type FoldRig } from "@/lib/fold-rig";
 import { startGithubPolling, useGithub } from "@/lib/github-store";
 import { ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { useIntroState } from "@/lib/intro-state";
@@ -124,9 +124,10 @@ function AnimatedStage({ onUnsupported }: { onUnsupported: () => void }) {
 
   // `?debug` exposes the rig so a script can freeze any pose or transition.
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).has("debug")) {
-      window.__foldRig = rig;
-    }
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("debug")) window.__foldRig = rig;
+    // `?still` freezes the device's idle float, for the continuity test.
+    if (params.has("still")) holdStill(rig);
   }, [rig]);
 
   // Start polling GitHub once the story is under way, not on page load.
@@ -263,7 +264,10 @@ function AnimatedStage({ onUnsupported }: { onUnsupported: () => void }) {
           <StoryCanvas
             rig={rig}
             portal={canvasWrapRef}
-            active={(progress.near && inView) || warm}
+            // Render while the model is not up yet (its first frame announces
+            // it), then for a moment to warm the shaders, then only while the
+            // story is on screen and near the device.
+            active={!ready || warm || (progress.near && inView)}
             current={progress.current}
             near={progress.near}
             onOpenProject={openProject}

@@ -91,7 +91,8 @@ function Device(props: DeviceProps) {
     const unitsPerPx = viewport.height / size.height;
     const base = projectsPxPerUnit(size.width, size.height) * unitsPerPx * rig.scale;
     const shown = easeOutBack(Math.min(1, Math.max(0, rig.show)));
-    const bob = Math.sin(clock.elapsedTime * 1.1) * 0.006 * viewport.height * (1 - rig.shut);
+    const bob =
+      Math.sin(clock.elapsedTime * 1.1) * 0.006 * viewport.height * (1 - rig.shut) * rig.bob;
 
     // Never hidden: while the device is not shown it is scaled to nothing, so
     // the shaders still compile on the first frame, long before Projects.
@@ -152,7 +153,12 @@ export default function StoryCanvas({ active, onContext, ...device }: StoryCanva
       camera={{ fov: 30, position: [0, 0, 8], near: 0.1, far: 40 }}
       gl={{ alpha: true, antialias: true }}
       frameloop={active ? "always" : "never"}
-      onCreated={({ gl, invalidate }) => {
+      onCreated={({ gl, scene, invalidate }) => {
+        // `?debug` exposes the renderer and scene (the triangle count in the report).
+        if (new URLSearchParams(window.location.search).has("debug")) {
+          Reflect.set(window, "__foldGL", gl);
+          Reflect.set(window, "__foldScene", scene);
+        }
         const el = gl.domElement;
         el.addEventListener("webglcontextlost", (event) => {
           // Lets the browser restore the context instead of discarding it.
