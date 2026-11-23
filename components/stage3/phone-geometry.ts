@@ -1,7 +1,6 @@
-import { ExtrudeGeometry, Shape, type BufferGeometry } from "three";
-import { PHONE } from "@/lib/phone-rig";
+import { Shape, type BufferGeometry } from "three";
 
-/** The screen mesh as measured from its geometry (local units, width of PHONE.w = 1). */
+/** The screen mesh as measured from its geometry (local units). */
 export interface ScreenMetrics {
   /** Bounding box size and centre, in the phone's local space. */
   w: number;
@@ -75,27 +74,4 @@ export function roundedRectShape(w: number, h: number, r: number): Shape {
   s.lineTo(x, y + r);
   s.absarc(x + r, y + r, r, Math.PI, Math.PI * 1.5, false);
   return s;
-}
-
-/**
- * The titanium body: a stadium-cornered slab with a rounded edge, centred on
- * the origin. The bevel grows the shape outward, so the plan is inset by it.
- */
-export function createBodyGeometry(): ExtrudeGeometry {
-  const bevel = 0.028;
-  const shape = roundedRectShape(
-    PHONE.w - 2 * bevel,
-    PHONE.h - 2 * bevel,
-    PHONE.r - bevel,
-  );
-  const geometry = new ExtrudeGeometry(shape, {
-    depth: PHONE.d - 2 * bevel,
-    bevelEnabled: true,
-    bevelThickness: bevel,
-    bevelSize: bevel,
-    bevelSegments: 8,
-    curveSegments: 40,
-  });
-  geometry.center();
-  return geometry;
 }

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { cn } from "@/lib/cn";
 import { useGithub } from "@/lib/github-store";
 import { gsap } from "@/lib/gsap";
-import type { PhoneRig } from "@/lib/phone-rig";
+import type { FoldRig } from "@/lib/fold-rig";
 import { useBangkokTime } from "@/lib/time";
 import { ActivityFeed, type FeedStatus } from "./ActivityFeed";
 import { LocationMap } from "./LocationMap";
@@ -24,7 +24,7 @@ type Tab = (typeof TABS)[number]["id"];
  * True once the app layer has been on screen: the rings and bars draw in the
  * first time it is seen, not while it is still hidden at page load.
  */
-function useSeen(rig: PhoneRig): boolean {
+function useSeen(rig: Pick<FoldRig, "app">): boolean {
   const [seen, setSeen] = useState(false);
   useEffect(() => {
     if (seen) return;
@@ -43,7 +43,7 @@ function useSeen(rig: PhoneRig): boolean {
  * Summary | Pushes | Location segmented control with a sliding knob, and its
  * panes.
  */
-export function AppScreen({ rig }: { rig: PhoneRig }) {
+export function AppScreen({ rig }: { rig: Pick<FoldRig, "app"> }) {
   const clock = useBangkokTime("short");
   const [tab, setTab] = useState<Tab>("summary");
   const { activity, unreachable } = useGithub();

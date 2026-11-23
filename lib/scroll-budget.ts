@@ -52,9 +52,15 @@ export function stage1Rests(projectCount: number): number[] {
   return rests;
 }
 
-/** Rest positions of Stage 3, in vh from the top of its pinned story. */
-export const STAGE3_RESTS: readonly number[] = [
-  BUDGET.toActivity,
-  BUDGET.toActivity + BUDGET.activityHold,
-  BUDGET.toActivity + BUDGET.activityHold + BUDGET.toContact,
-];
+/**
+ * The whole story's rests, in vh from the top: Stage 1's, then the Activity
+ * phone, the Activity hold and Contact. The last one is the story's length.
+ */
+export function storyRests(projectCount: number): number[] {
+  const rests = stage1Rests(projectCount);
+  const lastProject = rests[rests.length - 1];
+  const activity = round(lastProject + BUDGET.toActivity);
+  const hold = round(activity + BUDGET.activityHold);
+  const contact = round(hold + BUDGET.toContact);
+  return [...rests, activity, hold, contact];
+}

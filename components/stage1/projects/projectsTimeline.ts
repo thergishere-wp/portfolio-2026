@@ -24,7 +24,10 @@ export const FIRST_PROJECT_STEP = UNLOCK_STEP;
 /** The progress a step index stands for. */
 export function progressAt(stepIndex: number): ProjectsProgress {
   return {
-    current: stepIndex < UNLOCK_STEP ? -1 : stepIndex - UNLOCK_STEP,
+    // Steps after the last project (the Activity and Contact steps) leave the
+    // last project as the current one.
+    current:
+      stepIndex < UNLOCK_STEP ? -1 : Math.min(stepIndex - UNLOCK_STEP, projects.length - 1),
     near: stepIndex >= NEAR_STEP,
     deviceShown: stepIndex >= 3,
   };

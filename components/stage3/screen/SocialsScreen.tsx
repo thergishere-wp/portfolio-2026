@@ -3,7 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { contact, socials, type SocialId } from "@/content/socials";
 import { gsap } from "@/lib/gsap";
-import type { PhoneRig } from "@/lib/phone-rig";
+import type { FoldRig } from "@/lib/fold-rig";
 import styles from "./screen.module.css";
 
 const ICONS: Record<SocialId, ReactNode> = {
@@ -50,7 +50,7 @@ const TOTAL = ICON_SPAN + STAGGER * (socials.length - 1);
  * landscape (the phone turns), clear of the Dynamic Island. The rig's `apps`
  * progress drives the entrance.
  */
-export function SocialsScreen({ rig }: { rig: PhoneRig }) {
+export function SocialsScreen({ rig }: { rig: Pick<FoldRig, "apps"> }) {
   const refs = useRef<Array<HTMLLIElement | null>>([]);
 
   useEffect(() => {

@@ -1,18 +1,16 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { RgMark } from "@/components/chrome/RgMark";
 import { projects } from "@/content/projects";
+import { contact } from "@/content/socials";
+import { cn } from "@/lib/cn";
 import { createFoldRig, type FoldRig } from "@/lib/fold-rig";
+import { startGithubPolling, useGithub } from "@/lib/github-store";
 import { ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { useIntroState } from "@/lib/intro-state";
-import { stage1Rests } from "@/lib/scroll-budget";
+import { storyRests } from "@/lib/scroll-budget";
 import { registerScrollTarget } from "@/lib/scroll-targets";
 import { useLenis } from "@/lib/smooth-scroll";
 import { registerSnapSource } from "@/lib/snap-points";
@@ -21,8 +19,12 @@ import { useNear } from "@/lib/useNear";
 import { useStageLayout } from "@/lib/useStageLayout";
 import { usePrefersReducedMotion } from "@/lib/useReducedMotion";
 import { hasWebGL, whenIdle } from "@/lib/webgl";
+import { ReposWindow } from "../stage3/ReposWindow";
+import { Stage3Static } from "../stage3/Stage3Static";
+import stage3Styles from "../stage3/Stage3.module.css";
 import { loadFoldTextures } from "../story/fold-screen";
 import { buildAboutTimeline } from "./aboutTimeline";
+import { appendDeviceTimeline } from "./deviceTimeline";
 import { Imac } from "./Imac";
 import { ImacScreen } from "./ImacScreen";
 import { MenuBar } from "./MenuBar";
@@ -69,7 +71,11 @@ interface ViewerState {
   from: DOMRect;
 }
 
-/** The pinned iMac story: the About desktop with its dock, then Projects. */
+/**
+ * The whole pinned story, one section and one pin (so there is no pin-spacing
+ * handoff to jump at): the iMac's About desktop, Projects, then Activity and
+ * Contact on the same foldable device and the same canvas.
+ */
 function AnimatedStage({ onUnsupported }: { onUnsupported: () => void }) {
   const sectionRef = useRef<HTMLElement>(null);
   const imacRef = useRef<HTMLDivElement>(null);
@@ -85,6 +91,7 @@ function AnimatedStage({ onUnsupported }: { onUnsupported: () => void }) {
   }, [lenis]);
   const intro = useIntroState();
   const inView = useNear(sectionRef, "300px 0px", false);
+  const { repos, unreachable } = useGithub();
 
   // The project the steps have unlocked (-1 while locked), whether previews
   // may load, and whether the device has been shown.
@@ -93,6 +100,11 @@ function AnimatedStage({ onUnsupported }: { onUnsupported: () => void }) {
     near: false,
     deviceShown: false,
   });
+  const [canvasOn, setCanvasOn] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [contextLost, setContextLost] = useState(false);
+  const [viewer, setViewer] = useState<ViewerState | null>(null);
+
   // `?debug` exposes the rig so a script can freeze any pose or transition.
   useEffect(() => {
     if (new URLSearchParams(window.location.search).has("debug")) {
@@ -100,10 +112,8 @@ function AnimatedStage({ onUnsupported }: { onUnsupported: () => void }) {
     }
   }, [rig]);
 
-  const [canvasOn, setCanvasOn] = useState(false);
-  const [ready, setReady] = useState(false);
-  const [contextLost, setContextLost] = useState(false);
-  const [viewer, setViewer] = useState<ViewerState | null>(null);
+  // Start polling GitHub once the story is under way, not on page load.
+  useEffect(() => (progress.near ? startGithubPolling() : undefined), [progress.near]);
 
   // Once the intro is done and the browser is idle: check WebGL, preload the
   // textures, then mount the canvas. It stays mounted for good.
@@ -126,14 +136,22 @@ function AnimatedStage({ onUnsupported }: { onUnsupported: () => void }) {
       if (!section || !imac) return;
 
       // Camera moves are scrubbed; every reveal is a step (see StepSequencer).
-      const rests = stage1Rests(projects.length);
+      const rests = storyRests(projects.length);
       const parts = buildAboutTimeline({
         section,
         imac,
         layoutRef,
         length: rests[rests.length - 1],
       });
-      appendProjectsSteps(section, parts.steps, rig);
+      const projectsEnd = appendProjectsSteps(section, parts.steps, rig);
+      appendDeviceTimeline({
+        timeline: parts.timeline,
+        section,
+        imac,
+        rig,
+        steps: parts.steps,
+        start: projectsEnd,
+      });
       const { timeline, steps } = parts;
 
       const startOf = (): number => timeline.scrollTrigger?.start ?? 0;
@@ -169,17 +187,19 @@ function AnimatedStage({ onUnsupported }: { onUnsupported: () => void }) {
         else window.scrollTo({ top: y });
       };
 
-      // The labels the side nav jumps to: the About desktop and the Projects title.
+      // The labels the side nav jumps to.
       timeline.addLabel("work", rests[3]);
-      const offAbout = registerScrollTarget("about", timeline, "about");
-      const offWork = registerScrollTarget("work", timeline, "work");
-      const offSnap = registerSnapSource(() => rests.map(px));
+      const offs = [
+        registerScrollTarget("about", timeline, "about"),
+        registerScrollTarget("work", timeline, "work"),
+        registerScrollTarget("activity", timeline, "activity"),
+        registerScrollTarget("contact", timeline, "contact"),
+        registerSnapSource(() => rests.map(px)),
+      ];
       return () => {
         follower.kill();
         sequencer.kill();
-        offAbout();
-        offWork();
-        offSnap();
+        offs.forEach((off) => off());
       };
     },
     { scope: sectionRef, dependencies: [] },
@@ -203,7 +223,7 @@ function AnimatedStage({ onUnsupported }: { onUnsupported: () => void }) {
       id="stage1"
       ref={sectionRef}
       className={styles.stage}
-      aria-label="About and projects"
+      aria-label="About, projects, activity and contact"
     >
       <Imac ref={imacRef} layout={layout}>
         <ImacScreen>
@@ -236,6 +256,16 @@ function AnimatedStage({ onUnsupported }: { onUnsupported: () => void }) {
         ) : null}
       </div>
       <ProjectsAct current={progress.current} onSelect={selectProject} />
+      <div className={stage3Styles.copy} data-a3c>
+        <p className={cn("eyebrow", stage3Styles.copyEyebrow)}>{contact.eyebrow}</p>
+        <h2>
+          {contact.titleLead} <em>{contact.titleEmphasis}</em>
+        </h2>
+      </div>
+      <ReposWindow repos={repos ? repos.repos : null} unreachable={unreachable} />
+      <p className={stage3Styles.foot} data-a3-foot>
+        {contact.emailLead} <a href={`mailto:${contact.email}`}>{contact.email}</a>
+      </p>
       {viewer ? (
         <ProjectViewer
           project={viewer.project}
@@ -251,14 +281,17 @@ function AnimatedStage({ onUnsupported }: { onUnsupported: () => void }) {
 /** Reduced motion, or no WebGL: every panel as a plain, static section. */
 function StaticStage() {
   return (
-    <section
-      id="stage1"
-      className={styles.static}
-      aria-label="About and projects"
-    >
-      <Panels />
-      <ProjectsStatic />
-    </section>
+    <>
+      <section
+        id="stage1"
+        className={styles.static}
+        aria-label="About and projects"
+      >
+        <Panels />
+        <ProjectsStatic />
+      </section>
+      <Stage3Static />
+    </>
   );
 }
 
