@@ -3,7 +3,8 @@
 import { useEffect, useRef, type CSSProperties } from "react";
 import { cn } from "@/lib/cn";
 import { gsap } from "@/lib/gsap";
-import { SCREEN_PX, type PhoneRig } from "@/lib/phone-rig";
+import type { PhoneRig } from "@/lib/phone-rig";
+import type { ScreenMetrics } from "./phone-geometry";
 import { AppScreen } from "./screen/AppScreen";
 import { LogoScreen } from "./screen/LogoScreen";
 import { SocialsScreen } from "./screen/SocialsScreen";
@@ -24,7 +25,14 @@ function setLayer(el: HTMLElement, value: number): void {
  * it is real, crisp, clickable DOM. The rig drives the cross-fade between the
  * logo, the app and the socials.
  */
-export function PhoneScreen({ rig }: { rig: PhoneRig }) {
+export function PhoneScreen({
+  rig,
+  screen,
+}: {
+  rig: PhoneRig;
+  /** The screen mesh as measured: the DOM is sized and clipped to it. */
+  screen: ScreenMetrics;
+}) {
   const logoRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<HTMLDivElement>(null);
   const socialRef = useRef<HTMLDivElement>(null);
@@ -40,12 +48,14 @@ export function PhoneScreen({ rig }: { rig: PhoneRig }) {
     return () => gsap.ticker.remove(apply);
   }, [rig]);
 
-  // Runtime layout values: the screen's pixel size, for the rotated socials.
+  // Runtime layout values, all from the measured mesh: the pixel size and the
+  // corner radius that clips the content (--sw/--sh feed the rotated socials).
   const size = {
-    width: SCREEN_PX.w,
-    height: SCREEN_PX.h,
-    "--sw": `${SCREEN_PX.w}px`,
-    "--sh": `${SCREEN_PX.h}px`,
+    width: screen.px.w,
+    height: screen.px.h,
+    "--sw": `${screen.px.w}px`,
+    "--sh": `${screen.px.h}px`,
+    "--sr": `${screen.px.r}px`,
   } as CSSProperties;
 
   return (

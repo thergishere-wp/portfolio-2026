@@ -4,8 +4,12 @@
  */
 .scr {
   position: relative;
+  /* Clipped to the model's measured screen corners (--sr), content and island
+     alike, so nothing can reach the bezel. */
   overflow: hidden;
-  border-radius: 52px;
+  border-radius: var(--sr);
+  clip-path: inset(0 round var(--sr));
+  isolation: isolate;
   background: #fbfaf8;
   color: var(--ink);
   font-family: var(--sans);

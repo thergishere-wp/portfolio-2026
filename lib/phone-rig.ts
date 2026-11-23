@@ -80,15 +80,9 @@ export const SCREEN = {
   r: PHONE.r - PHONE.bezel,
 } as const;
 
-/** The DOM screen is laid out at this size, then mapped onto the screen mesh. */
-const SCREEN_PX_W = 390;
-export const SCREEN_PX = {
-  w: SCREEN_PX_W,
-  h: Math.round((SCREEN_PX_W * SCREEN.h) / SCREEN.w),
-} as const;
-
 /**
- * drei's <Html transform> shows a DOM element of W px as W * distanceFactor / 400
- * world units wide, so this distanceFactor makes the DOM exactly fill the screen.
+ * The DOM screen is laid out this many px wide, then mapped onto the screen
+ * mesh. Its height, corner radius and drei distanceFactor are all measured
+ * from the mesh (see measureScreen).
  */
-export const HTML_DISTANCE_FACTOR = (400 * SCREEN.w) / SCREEN_PX.w;
+export const SCREEN_PX_WIDTH = 390;

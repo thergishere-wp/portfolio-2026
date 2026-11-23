@@ -12,7 +12,8 @@
     "check:frameable": "tsx scripts/check-frameable.ts",
     "shots": "tsx scripts/capture-shots.ts",
     "mock:github": "tsx scripts/mock-github.ts",
-    "og": "tsx scripts/capture-og.ts"
+    "og": "tsx scripts/capture-og.ts",
+    "check:phone": "tsx scripts/phone-corners.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

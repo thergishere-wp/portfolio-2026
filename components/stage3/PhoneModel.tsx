@@ -4,12 +4,16 @@ import { useMemo, type RefObject } from "react";
 import { NoBlending, ShapeGeometry } from "three";
 import { Html, RoundedBox } from "@react-three/drei";
 import {
-  HTML_DISTANCE_FACTOR,
   PHONE,
   SCREEN,
+  SCREEN_PX_WIDTH,
   type PhoneRig,
 } from "@/lib/phone-rig";
-import { createBodyGeometry, roundedRectShape } from "./phone-geometry";
+import {
+  createBodyGeometry,
+  measureScreen,
+  roundedRectShape,
+} from "./phone-geometry";
 import { PhoneScreen } from "./PhoneScreen";
 
 const TITANIUM = "#d8d3ca";
@@ -71,15 +75,18 @@ interface PhoneModelProps {
 }
 
 export function PhoneModel({ rig, portal }: PhoneModelProps) {
-  const parts = useMemo(
-    () => ({
+  const parts = useMemo(() => {
+    const screenHole = new ShapeGeometry(
+      roundedRectShape(SCREEN.w, SCREEN.h, SCREEN.r),
+      48,
+    );
+    return {
+      // The DOM screen is sized and placed from this mesh, not from numbers.
+      screen: measureScreen(screenHole, SCREEN_PX_WIDTH),
+      screenHole,
       body: createBodyGeometry(),
       frontGlass: new ShapeGeometry(
         roundedRectShape(PHONE.w - 0.056, PHONE.h - 0.056, PHONE.r - 0.028),
-        48,
-      ),
-      screenHole: new ShapeGeometry(
-        roundedRectShape(SCREEN.w, SCREEN.h, SCREEN.r),
         48,
       ),
       backGlass: new ShapeGeometry(
@@ -88,9 +95,8 @@ export function PhoneModel({ rig, portal }: PhoneModelProps) {
       ),
       port: new ShapeGeometry(roundedRectShape(0.17, 0.046, 0.023), 24),
       portTongue: new ShapeGeometry(roundedRectShape(0.125, 0.011, 0.0055), 12),
-    }),
-    [],
-  );
+    };
+  }, []);
 
   const bottomY = -PHONE.h / 2 - 0.0009;
   // Speaker grille holes either side of the port.
@@ -116,28 +122,35 @@ export function PhoneModel({ rig, portal }: PhoneModelProps) {
       </mesh>
 
       {/*
-        The screen. This plane punches a transparent hole through the canvas
-        (no blending, alpha 0) so the DOM layer behind it shows through. The
-        DOM stays real: crisp, selectable and clickable.
+        The screen. The Html's own occlusion plane punches a transparent hole
+        through the canvas so the DOM layer behind it shows through; it is
+        given the screen mesh's rounded outline, so the hole is exactly the
+        screen (drei's default is a plain rectangle, which pokes through the
+        glass at the corners). The DOM stays real: crisp and clickable.
       */}
-      <mesh geometry={parts.screenHole} position={[0, 0, HALF_D + 0.0014]}>
-        <meshBasicMaterial
-          color="#000"
-          transparent
-          opacity={0}
-          blending={NoBlending}
-          toneMapped={false}
-        />
-      </mesh>
       <Html
         transform
         occlude="blending"
         portal={portal as RefObject<HTMLElement>}
-        position={[0, 0, HALF_D + 0.0016]}
-        distanceFactor={HTML_DISTANCE_FACTOR}
+        position={[
+          parts.screen.cx,
+          parts.screen.cy,
+          HALF_D + 0.0016,
+        ]}
+        distanceFactor={parts.screen.distanceFactor}
         zIndexRange={[10, 0]}
+        geometry={<primitive object={parts.screenHole} attach="geometry" />}
+        material={
+          <meshBasicMaterial
+            color="#000"
+            transparent
+            opacity={0}
+            blending={NoBlending}
+            toneMapped={false}
+          />
+        }
       >
-        <PhoneScreen rig={rig} />
+        <PhoneScreen rig={rig} screen={parts.screen} />
       </Html>
 
       {/* Frosted back glass and camera bump */}
