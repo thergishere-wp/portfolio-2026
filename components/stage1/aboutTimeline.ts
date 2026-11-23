@@ -21,7 +21,7 @@ export function buildAboutTimeline({
   section,
   imac,
   layoutRef,
-}: AboutTimelineParts): gsap.core.Timeline {
+}: AboutTimelineParts): { timeline: gsap.core.Timeline; endTime: number } {
   const $ = gsap.utils.selector(section);
   const out = { opacity: 1, y: 0, ease: "power2.out" };
 
@@ -113,5 +113,6 @@ export function buildAboutTimeline({
       t,
     );
 
-  return tl;
+  // The projects act continues from here.
+  return { timeline: tl, endTime: t };
 }

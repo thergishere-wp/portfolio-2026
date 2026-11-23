@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { RgMark } from "@/components/chrome/RgMark";
 import { useGSAP } from "@/lib/gsap";
 import { registerScrollTarget } from "@/lib/scroll-targets";
@@ -15,6 +15,9 @@ import { EducationPanel } from "./about/EducationPanel";
 import { JourneyPanel } from "./about/JourneyPanel";
 import { NowPanel } from "./about/NowPanel";
 import { ToolkitPanel } from "./about/ToolkitPanel";
+import { ProjectsAct } from "./projects/ProjectsAct";
+import { ProjectsStatic } from "./projects/ProjectsStatic";
+import { appendProjectsAct } from "./projects/projectsTimeline";
 import styles from "./Stage1.module.css";
 
 const Panels = () => (
@@ -32,6 +35,8 @@ function AnimatedStage() {
   const sectionRef = useRef<HTMLElement>(null);
   const imacRef = useRef<HTMLDivElement>(null);
   const { layout, layoutRef } = useStageLayout(imacRef);
+  // The project the timeline has revealed; -1 while the window is locked.
+  const [current, setCurrent] = useState(-1);
 
   useGSAP(
     () => {
@@ -39,8 +44,24 @@ function AnimatedStage() {
       const imac = imacRef.current;
       if (!section || !imac) return;
 
-      const timeline = buildAboutTimeline({ section, imac, layoutRef });
-      return registerScrollTarget("about", timeline, "about");
+      const { timeline, endTime } = buildAboutTimeline({
+        section,
+        imac,
+        layoutRef,
+      });
+      appendProjectsAct({
+        timeline,
+        section,
+        startTime: endTime,
+        onCurrentChange: setCurrent,
+      });
+
+      const offAbout = registerScrollTarget("about", timeline, "about");
+      const offWork = registerScrollTarget("work", timeline, "work");
+      return () => {
+        offAbout();
+        offWork();
+      };
     },
     { scope: sectionRef, dependencies: [] },
   );
@@ -67,6 +88,7 @@ function AnimatedStage() {
           </div>
         </ImacScreen>
       </Imac>
+      <ProjectsAct current={current} />
     </section>
   );
 }
@@ -80,6 +102,7 @@ function StaticStage() {
       aria-label="About and projects"
     >
       <Panels />
+      <ProjectsStatic />
     </section>
   );
 }

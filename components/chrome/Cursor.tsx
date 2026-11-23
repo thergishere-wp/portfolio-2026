@@ -28,8 +28,17 @@ export function Cursor() {
       el.dataset.big = overOpen ? "true" : "false";
     };
 
+    // A click usually opens something over the target; the next move re-checks.
+    const onClick = (): void => {
+      el.dataset.big = "false";
+    };
+
     window.addEventListener("pointermove", onMove);
-    return () => window.removeEventListener("pointermove", onMove);
+    window.addEventListener("click", onClick);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("click", onClick);
+    };
   }, []);
 
   return (
