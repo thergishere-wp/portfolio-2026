@@ -89,6 +89,15 @@ export function progressAt(step: number, projectCount: number): StoryProgress {
   };
 }
 
+/**
+ * An inactive layer must not take clicks, not even during its fade out: set
+ * at the start of the lane's move, so a layer is never hit-testable unless its
+ * step is active.
+ */
+const clicks = (tl: gsap.core.Timeline, targets: gsap.TweenTarget, on: boolean): void => {
+  tl.set(targets, { pointerEvents: on ? "auto" : "none" }, 0);
+};
+
 const GREY = "#B4B0A9";
 const VIOLET = "#5B3DF5";
 
@@ -171,6 +180,7 @@ export function createStoryChannels(
           : { autoAlpha: aboutOn ? 1 : 0, y: aboutOn ? 0 : -12, duration: 0.4 },
         aboutOn && !out ? 0.1 : 0,
       ).to($("[data-desktop]"), { autoAlpha: out ? 0 : 1, duration: 0.5 }, 0);
+      clicks(tl, $("[data-desktop]"), !out);
     });
 
     lanes.about.to(`${aboutOn}`, instant, (tl) => {
@@ -187,6 +197,7 @@ export function createStoryChannels(
           : { opacity: 0, y: 40, duration: 0.3 },
         aboutOn ? 0.3 : 0,
       );
+      clicks(tl, $("[data-about-window]"), aboutOn && !out);
     });
 
     lanes.dock.to(`${step >= STEP.DOCK}`, instant, (tl) => {
@@ -197,6 +208,7 @@ export function createStoryChannels(
           : { autoAlpha: 0, y: 40, duration: 0.4 },
         0,
       );
+      clicks(tl, $("[data-dock]"), step >= STEP.DOCK && !out);
     });
 
     lanes.orbs.to(`${out}`, instant, (tl) => {
@@ -231,6 +243,7 @@ export function createStoryChannels(
             : { autoAlpha: 0, duration: 0.2 },
         0,
       );
+      clicks(tl, $("[data-p] button"), listOn);
     });
 
     const active = activeName(step, n);
@@ -259,16 +272,12 @@ export function createStoryChannels(
   // ---- The device ------------------------------------------------------------
   const device: Channel = (step, instant) => {
     const shown = step >= STEP.ENTER;
-    const unfolded = step >= STEP.FIRST;
     const unlocked = step >= STEP.UNLOCK;
 
-    lanes.device.to(`${shown}${unfolded}${unlocked}`, instant, (tl) => {
+    // (The unfold itself is a camera move: it is scrubbed over 3-4 ticks, see
+    // deviceTimeline.ts.)
+    lanes.device.to(`${shown}${unlocked}`, instant, (tl) => {
       tl.to(rig, { show: shown ? 1 : 0, duration: shown ? 0.9 : 0.4, ease: "power2.out" }, 0.1)
-        .to(
-          rig,
-          { unfold: unfolded ? 1 : 0, turn: unfolded ? 0 : -0.5, duration: 0.8, ease: "power2.inOut" },
-          0,
-        )
         // The lock icon opens, then the lock screen slides up.
         .to(rig, { open: unlocked ? 1 : 0, duration: unlocked ? 0.9 : 0.5, ease: "power2.inOut" }, 0);
     });
@@ -305,15 +314,17 @@ export function createStoryChannels(
       }
     });
 
-    // The live page: the current project's, once its transition is under way.
+    // The live page: the current project's, but only once the poster's own
+    // transition has finished (it ends 0.9 s in), so a poster still moving is
+    // never blended with the page on top of it (that doubles the text).
     const page = Math.max(current, step >= STEP.FIRST ? 0 : -1);
     lanes.frames.to(`${page}`, instant, (tl) => {
       for (let i = 0; i < n; i++) {
         const on = i === page && live(i);
         tl.to(
           rig.frames,
-          { [i]: on ? 1 : 0, duration: on ? 0.4 : 0.2 },
-          on && step > STEP.UNLOCK ? 0.55 : 0,
+          { [i]: on ? 1 : 0, duration: on ? 0.35 : 0.2 },
+          on && step > STEP.UNLOCK ? 0.95 : 0,
         );
       }
     });
@@ -330,6 +341,7 @@ export function createStoryChannels(
           : { autoAlpha: 0, x: 120, duration: 0.5, ease: "power2.in" },
         0,
       );
+      clicks(tl, $("[data-repos]"), reposOn);
     });
 
     const contactOn = step >= map.contact;
@@ -337,8 +349,8 @@ export function createStoryChannels(
       tl.to(
         $("[data-a3c]"),
         contactOn
-          ? { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }
-          : { opacity: 0, y: -20, duration: 0.3 },
+          ? { autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out" }
+          : { autoAlpha: 0, y: -20, duration: 0.3 },
         contactOn ? 0.3 : 0,
       ).to(
         $("[data-a3-foot]"),
@@ -347,6 +359,7 @@ export function createStoryChannels(
           : { autoAlpha: 0, y: 20, duration: 0.3 },
         contactOn ? 0.4 : 0,
       );
+      clicks(tl, $("[data-a3-foot]"), contactOn);
     });
   };
 

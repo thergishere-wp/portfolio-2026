@@ -222,7 +222,9 @@ async function main(): Promise<void> {
   await page.keyboard.press("Shift"); // skip the intro
   await page.waitForFunction("window.__foldState?.ready === true", null, { timeout: 180_000 });
   await page.waitForTimeout(3500);
-  await page.mouse.move(W / 2, H / 2);
+  // Parked in the empty left margin: a pointer over the travelling phone or the
+  // repositories list would (rightly) let those scroll first.
+  await page.mouse.move(20, H / 2);
 
   const maxScroll = (await page.evaluate(
     "document.documentElement.scrollHeight - window.innerHeight",
@@ -584,6 +586,15 @@ async function main(): Promise<void> {
       if (entered[s.step] === undefined) entered[s.step] = i + 1;
     });
     report.firstTickInStep = entered;
+  }
+  if (p1.length) {
+    // The unfold is scrubbed: it must be spread over 3-4 ticks, not one.
+    const unfolding = p1.filter((s) => s.rig.unfold > 0.02 && s.rig.unfold < 0.98).length;
+    report.unfoldTicks = unfolding;
+    console.log(`unfold spread over ${unfolding} wheel ticks (partly open)`);
+    if (unfolding < 3 || unfolding > 5) {
+      problems.push(`unfold spans ${unfolding} ticks (wanted 3-4)`);
+    }
   }
   report.problems = problems;
   writeFileSync(path.join(outDir, "report.json"), JSON.stringify(report, null, 1));

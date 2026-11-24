@@ -219,20 +219,13 @@ const FRAGMENT = /* glsl */ `
       col = mix(shot(uA, uv), shot(uB, uv), ease(p));
 
     } else if (uMode < 1.5) {
-      // App switcher: both pages shrink to cards and slide sideways.
-      col = vec3(0.075, 0.075, 0.09);
+      // Push: the old page slides out to the left as the new one slides in
+      // from the right. Full size, edge to edge: no shrinking, no bands.
       float t = ease(p);
-      float sA = mix(1.0, 0.7, ease(clamp(p / 0.42, 0.0, 1.0)));
-      float sB = mix(0.7, 1.0, ease(clamp((p - 0.5) / 0.5, 0.0, 1.0)));
-      vec2 cA = vec2(0.5 - 1.02 * t, 0.5);
-      vec2 cB = vec2(0.5 + 1.02 * (1.0 - t), 0.5);
-      vec2 qa = (uv - cA) / sA;
-      vec2 qb = (uv - cB) / sB;
-      float da = sdRoundBox(qa * vec2(uAspect, 1.0) - vec2(0.5 * uAspect, 0.5) + vec2(0.5 * uAspect, 0.5), vec2(0.5 * uAspect, 0.5), 0.05);
-      float db = sdRoundBox(qb * vec2(uAspect, 1.0), vec2(0.5 * uAspect, 0.5), 0.05);
-      col = mix(col, shot(uA, qa + 0.5) * 0.92, 1.0 - smoothstep(-0.004, 0.004, da));
-      col *= 1.0 - 0.35 * smoothstep(0.06, 0.0, db) * step(0.0, db);
-      col = mix(col, shot(uB, qb + 0.5), 1.0 - smoothstep(-0.004, 0.004, db));
+      col = uv.x < 1.0 - t
+        ? shot(uA, vec2(uv.x + t, uv.y))
+        : shot(uB, vec2(uv.x - (1.0 - t), uv.y));
+      col *= 1.0 - 0.18 * (1.0 - smoothstep(0.0, 0.05, abs(uv.x - (1.0 - t)))) * step(0.001, t) * step(t, 0.999);
 
     } else if (uMode < 2.5) {
       // Soft horizontal page turn: the new page wipes in from the left, the

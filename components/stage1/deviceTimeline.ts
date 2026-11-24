@@ -1,6 +1,6 @@
 import { FOLD, projectsPxPerUnit, type FoldRig } from "@/lib/fold-rig";
 import { gsap } from "@/lib/gsap";
-import { BUDGET } from "@/lib/scroll-budget";
+import { BUDGET, STEP_LEAD } from "@/lib/scroll-budget";
 
 /** The phone stands 22% of the viewport width left of centre beside the repositories. */
 export const ACTIVITY_X = -0.22;
@@ -37,8 +37,8 @@ interface DeviceTimelineParts {
 }
 
 /**
- * The Activity and Contact camera moves, appended after the last project. All
- * of it is scrubbed (the position is exactly the scroll), so nothing here can
+ * The unfold, then the Activity and Contact camera moves, appended after the
+ * last project. All of it is scrubbed (the position is exactly the scroll), so nothing here can
  * run ahead of, or lag behind, the user.
  *
  * Fold -> Activity (1.0 vh), as one continuous move:
@@ -63,6 +63,15 @@ export function appendDeviceTimeline({
   start,
 }: DeviceTimelineParts): void {
   const $ = gsap.utils.selector(section);
+
+  // The unfold is a camera move, so it is scrubbed, and linear so that it
+  // really is spread over the ticks: 0.42 vh is about 3.4 wheel ticks of 100 px
+  // at 812 px, the lock screen then waits a moment before the unlock step
+  // slides it away.
+  const first =
+    BUDGET.zoomIn + BUDGET.aboutStop + BUDGET.zoomOut + BUDGET.projEnter + BUDGET.projList;
+  tl.to(rig, { unfold: 1, turn: 0, duration: 0.42, ease: "none" }, first + STEP_LEAD);
+
   const activity = start + BUDGET.toActivity;
   const hold = activity + BUDGET.activityHold;
   const contact = hold + BUDGET.toContact;

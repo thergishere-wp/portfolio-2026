@@ -18,7 +18,6 @@
   position: absolute;
   inset: 0;
   opacity: 0;
-  visibility: hidden;
 }
 .frame iframe {
   display: block;
@@ -137,7 +136,9 @@
   cursor: pointer;
   pointer-events: none;
 }
-.hit[data-on="true"] {
+/* Only while the screen is on show (flat and open) and a project is unlocked:
+   the root stays in the page (opacity 0) while the device folds. */
+.inner[data-on="1"] .hit[data-on="true"] {
   pointer-events: auto;
 }
 .hint2 {

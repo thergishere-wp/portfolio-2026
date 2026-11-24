@@ -1,8 +1,11 @@
 "use client";
 
-import type { RepoSummary } from "@/lib/github-types";
+import { useRef } from "react";
+import { fallbackRepos } from "@/content/repos-fallback";
+import type { RepoSummary, ReposPayload } from "@/lib/github-types";
 import { cn } from "@/lib/cn";
 import { formatRelative, useNow } from "@/lib/time";
+import { useWheelHandoff } from "@/lib/useWheelHandoff";
 import styles from "./ReposWindow.module.css";
 
 const LOCK = (
@@ -28,7 +31,7 @@ function RepoRow({ repo, now }: { repo: RepoSummary; now: number }) {
             {repo.language}
           </span>
         ) : null}
-        <span>Updated {formatRelative(repo.pushedAt, "long", now)}</span>
+        {repo.pushedAt ? <span>Updated {formatRelative(repo.pushedAt, "long", now)}</span> : null}
       </span>
     </>
   );
@@ -55,15 +58,27 @@ function RepoRow({ repo, now }: { repo: RepoSummary; now: number }) {
 }
 
 interface ReposWindowProps {
-  /** Most recently pushed first. Null while loading. */
-  repos: RepoSummary[] | null;
+  /** What /api/github/repos returned. Null while loading. */
+  payload: ReposPayload | null;
   /** The network failed and there is nothing to show. */
   unreachable?: boolean;
 }
 
-/** The right-hand glass window: "What I'm building", a scrollable repo list. */
-export function ReposWindow({ repos, unreachable = false }: ReposWindowProps) {
+/**
+ * The right-hand glass window: "What I'm building", a scrollable repo list.
+ * When the live list is not there (no token, empty, or unreachable) a static
+ * list of public repositories stands in, never an empty message.
+ */
+export function ReposWindow({ payload, unreachable = false }: ReposWindowProps) {
   const now = useNow();
+  const listRef = useRef<HTMLUListElement>(null);
+  // The list scrolls on its own only while it can; otherwise the wheel moves the page.
+  useWheelHandoff(listRef);
+
+  const live = payload && payload.configured && payload.repos.length > 0 ? payload.repos : null;
+  const loading = payload === null && !unreachable;
+  const repos = live ?? (loading ? null : fallbackRepos);
+
   return (
     <div className={cn("glass", styles.repos)} data-repos>
       <div className="wbar">
@@ -84,20 +99,18 @@ export function ReposWindow({ repos, unreachable = false }: ReposWindowProps) {
           What I&apos;m <em>building.</em>
         </h3>
       </div>
-      {/* data-lenis-prevent: this list scrolls on its own, not with the page. */}
-      <ul
-        className={styles.list}
-        data-lenis-prevent
-        aria-busy={repos === null && !unreachable}
-      >
-        {repos && repos.length > 0 ? (
-          repos.map((repo) => <RepoRow key={repo.name} repo={repo} now={now} />)
-        ) : repos || unreachable ? (
-          <li className={styles.empty}>
-            {unreachable
-              ? "Couldn't reach GitHub right now."
-              : "No repositories to show."}
-          </li>
+      <ul ref={listRef} className={styles.list} aria-busy={loading}>
+        {repos ? (
+          <>
+            {repos.map((repo) => (
+              <RepoRow key={repo.name} repo={repo} now={now} />
+            ))}
+            {!live ? (
+              <li className={styles.empty}>
+                Live GitHub data isn&apos;t available right now: a selection of public repositories.
+              </li>
+            ) : null}
+          </>
         ) : (
           Array.from({ length: 4 }, (_, i) => (
             <li key={i} className={styles.skel} aria-hidden="true" />

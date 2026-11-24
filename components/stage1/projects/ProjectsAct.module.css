@@ -36,12 +36,12 @@
   padding: 0 5vw;
   pointer-events: none;
 }
-.act2 > * {
-  pointer-events: auto;
-}
 .left {
   grid-column: 1;
   grid-row: 1;
+  /* The column spans the stage's left side, over the phone's tabs and the
+     dock: only the names themselves take clicks (and only while visible). */
+  pointer-events: none;
 }
 /* The overview card lives in the middle column and never reaches the device. */
 .minis {
@@ -77,6 +77,7 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  pointer-events: auto;
   transition: transform 0.25s;
 }
 .pbtn:hover {
@@ -107,12 +108,13 @@
   visibility: hidden;
 }
 .mincBody {
-  animation: swap 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: swap 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+/* A swap dips to 40%, never to blank, so the card is never an empty glass. */
 @keyframes swap {
   from {
-    opacity: 0;
-    transform: translateY(8px);
+    opacity: 0.4;
+    transform: translateY(6px);
   }
 }
 .minic p {

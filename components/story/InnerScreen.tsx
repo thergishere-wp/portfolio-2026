@@ -9,8 +9,13 @@ import { FRAME_SANDBOX } from "../stage1/projects/frame";
 import type { ScreenMetrics } from "../stage3/phone-geometry";
 import styles from "./inner.module.css";
 
-/** The page stays hidden for this long after the iframe's load event, then fades in over its poster. */
-const SETTLE_MS = 300;
+/**
+ * The poster stays up for this long after the iframe's load event, then the
+ * page fades in over it. The page keeps rendering (and playing its entrance
+ * animation) the whole time, hidden by opacity only, so its hero has painted
+ * by then.
+ */
+const SETTLE_MS = 900;
 
 function LiveFrame({ url, title }: { url: string; title: string }) {
   // Hidden until the page has loaded AND settled, so the poster underneath is
@@ -72,14 +77,18 @@ export function InnerScreen({ rig, metrics, current, near, onOpen }: InnerScreen
       if (root.dataset.on !== key) {
         root.dataset.on = key;
         root.style.opacity = key;
-        root.style.visibility = open ? "visible" : "hidden";
       }
+      // Never visibility:hidden while the device exists: Chrome stops
+      // rendering (and animating) a hidden cross-origin iframe, so a page
+      // would start its entrance animation only when first shown and be
+      // half-drawn on screen. Opacity hides it without that.
+      const exists = rig.show > 0.5 ? "visible" : "hidden";
+      if (root.style.visibility !== exists) root.style.visibility = exists;
       root.querySelectorAll<HTMLElement>("[data-preview]").forEach((el, i) => {
         const value = String(Math.round((rig.frames[i] ?? 0) * 1000) / 1000);
         if (el.dataset.v === value) return;
         el.dataset.v = value;
         el.style.opacity = value;
-        el.style.visibility = Number(value) <= 0.001 ? "hidden" : "visible";
       });
 
       // The lock: the icon opens (the shackle lifts, then swings), then the

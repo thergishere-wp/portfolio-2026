@@ -16,6 +16,7 @@
     "check:phone": "tsx scripts/phone-corners.ts",
     "check:continuity": "tsx scripts/check-continuity.ts",
     "check:scroll": "tsx scripts/check-scroll.ts",
+    "check:clicks": "tsx scripts/check-clicks.ts",
     "check:3d": "tsx scripts/check-3d.ts"
   },
   "dependencies": {

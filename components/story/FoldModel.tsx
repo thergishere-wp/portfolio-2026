@@ -275,6 +275,10 @@ export function FoldModel({
       <group position={[0, 0, HALF_D + 0.004]}>
         <Html
           transform
+          // drei's wrapper defaults to pointer-events: auto and, now that the
+          // page keeps rendering (opacity 0) while the device folds, would sit
+          // over the cover's tabs. Only the open hit area takes clicks.
+          pointerEvents="none"
           portal={portal as RefObject<HTMLElement>}
           distanceFactor={parts.innerMetrics.distanceFactor}
           zIndexRange={[40, 20]}

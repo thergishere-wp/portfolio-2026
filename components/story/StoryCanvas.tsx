@@ -149,6 +149,10 @@ interface StoryCanvasProps extends Omit<DeviceProps, "onReady"> {
 export default function StoryCanvas({ active, onContext, ...device }: StoryCanvasProps) {
   return (
     <Canvas
+      // R3F's wrapper div defaults to pointer-events: auto and would sit over
+      // the whole stage (the About dock, the phone tabs); the canvas only
+      // draws, the DOM screens take the clicks.
+      style={{ pointerEvents: "none" }}
       dpr={[1, 2]}
       camera={{ fov: 30, position: [0, 0, 8], near: 0.1, far: 40 }}
       gl={{ alpha: true, antialias: true }}

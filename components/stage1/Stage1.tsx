@@ -299,7 +299,7 @@ function AnimatedStage({ onUnsupported }: { onUnsupported: () => void }) {
           {contact.titleLead} <em>{contact.titleEmphasis}</em>
         </h2>
       </div>
-      <ReposWindow repos={repos ? repos.repos : null} unreachable={unreachable} />
+      <ReposWindow payload={repos} unreachable={unreachable} />
       <p className={stage3Styles.foot} data-a3-foot>
         {contact.emailLead} <a href={`mailto:${contact.email}`}>{contact.email}</a>
       </p>
