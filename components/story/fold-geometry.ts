@@ -65,7 +65,7 @@ export function glassGeometry(side: Side): ShapeGeometry {
 /** The inner screen of one half. */
 export function innerScreenGeometry(side: Side): ShapeGeometry {
   return new ShapeGeometry(
-    roundedRect4(INNER.w, INNER.h, radii(side, INNER.r, 0.008)),
+    roundedRect4(INNER.w, INNER.h, radii(side, INNER.r, 0)),
     20,
   );
 }
@@ -76,7 +76,7 @@ export function innerScreenGeometry(side: Side): ShapeGeometry {
  */
 export function unionScreenGeometry(): ShapeGeometry {
   return new ShapeGeometry(
-    roundedRectShape(2 * (INNER.w + FOLD.crease), INNER.h, INNER.r),
+    roundedRectShape(2 * INNER.w, INNER.h, INNER.r),
     48,
   );
 }
@@ -87,5 +87,4 @@ export function coverScreenGeometry(): ShapeGeometry {
 }
 
 /** X of an inner screen's centre, in its half's coordinates (the hinge is x = 0). */
-export const innerCentreX = (side: Side): number =>
-  side * (FOLD.crease + INNER.w / 2);
+export const innerCentreX = (side: Side): number => side * (INNER.w / 2);

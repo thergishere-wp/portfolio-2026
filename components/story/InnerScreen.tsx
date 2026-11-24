@@ -2,15 +2,27 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { projects, projectsAct } from "@/content/projects";
+import { INNER_PX, type FoldRig } from "@/lib/fold-rig";
 import { gsap } from "@/lib/gsap";
-import type { FoldRig } from "@/lib/fold-rig";
+import { useBangkokTime } from "@/lib/time";
 import { FRAME_SANDBOX } from "../stage1/projects/frame";
 import type { ScreenMetrics } from "../stage3/phone-geometry";
 import styles from "./inner.module.css";
 
+/**
+ * The poster stays up for this long after the iframe's load event, then the
+ * page fades in over it. The page keeps rendering (and playing its entrance
+ * animation) the whole time, hidden by opacity only, so its hero has painted
+ * by then.
+ */
+const SETTLE_MS = 900;
+
 function LiveFrame({ url, title }: { url: string; title: string }) {
-  // Hidden until loaded, so the screenshot underneath never flashes white.
-  const [loaded, setLoaded] = useState(false);
+  // Hidden until the page has loaded AND settled, so the poster underneath is
+  // never doubled by a half-rendered page.
+  const [shown, setShown] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
   return (
     <iframe
       src={url}
@@ -18,9 +30,12 @@ function LiveFrame({ url, title }: { url: string; title: string }) {
       sandbox={FRAME_SANDBOX}
       referrerPolicy="no-referrer"
       tabIndex={-1}
-      onLoad={() => setLoaded(true)}
-      // Runtime value: the fade-in once the page has loaded.
-      style={{ opacity: loaded ? 1 : 0 }}
+      onLoad={() => {
+        window.clearTimeout(timer.current);
+        timer.current = window.setTimeout(() => setShown(true), SETTLE_MS);
+      }}
+      // Runtime value: the fade-in once the page has loaded and settled.
+      style={{ opacity: shown ? 1 : 0 }}
     />
   );
 }
@@ -36,15 +51,20 @@ interface InnerScreenProps {
   onOpen: (rect: DOMRect, element: HTMLElement) => void;
 }
 
+const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
+
 /**
- * The live page over the open inner screen: tablet-sized iframes (only the
- * current and the next are mounted), the lock, and the click target that
- * opens the project full size. The screenshot textures underneath are drawn
- * by the model; this layer fades in over them. Steps drive the frames' and the
- * lock's opacity; the rig decides when the whole layer exists (open, flat).
+ * The page over the open inner screen: ONE continuous plane across both halves
+ * (a single iframe per project, laid out at INNER_PX, the same viewport the
+ * poster screenshots are captured at), the lock screen, and the click target
+ * that opens the project full size. The poster textures underneath are drawn by
+ * the model; the live page fades in over them. The rig decides when the layer
+ * exists (the halves lie flat and open).
  */
 export function InnerScreen({ rig, metrics, current, near, onOpen }: InnerScreenProps) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const clock = useBangkokTime("short");
+  const day = useBangkokTime("menubar");
 
   useEffect(() => {
     // The rig holds plain numbers (the steps tween them, whether or not this
@@ -57,30 +77,37 @@ export function InnerScreen({ rig, metrics, current, near, onOpen }: InnerScreen
       if (root.dataset.on !== key) {
         root.dataset.on = key;
         root.style.opacity = key;
-        root.style.visibility = open ? "visible" : "hidden";
       }
+      // Never visibility:hidden while the device exists: Chrome stops
+      // rendering (and animating) a hidden cross-origin iframe, so a page
+      // would start its entrance animation only when first shown and be
+      // half-drawn on screen. Opacity hides it without that.
+      const exists = rig.show > 0.5 ? "visible" : "hidden";
+      if (root.style.visibility !== exists) root.style.visibility = exists;
       root.querySelectorAll<HTMLElement>("[data-preview]").forEach((el, i) => {
         const value = String(Math.round((rig.frames[i] ?? 0) * 1000) / 1000);
         if (el.dataset.v === value) return;
         el.dataset.v = value;
         el.style.opacity = value;
-        el.style.visibility = Number(value) <= 0.001 ? "hidden" : "visible";
       });
+
+      // The lock: the icon opens (the shackle lifts, then swings), then the
+      // whole lock screen slides up like iOS, revealing the page.
       const lock = root.querySelector<HTMLElement>("[data-lock]");
       if (lock) {
-        const chip = String(Math.round(rig.chip * 1000) / 1000);
-        if (lock.dataset.v !== chip) {
-          lock.dataset.v = chip;
-          lock.style.opacity = chip;
-          lock.style.visibility = Number(chip) <= 0.001 ? "hidden" : "visible";
-          lock.style.transform = `scale(${0.92 + 0.08 * rig.chip})`;
+        const slide = clamp01((rig.open - 0.4) / 0.6);
+        const eased = slide * slide * (3 - 2 * slide);
+        const value = String(Math.round(eased * 1000) / 1000);
+        if (lock.dataset.v !== value) {
+          lock.dataset.v = value;
+          lock.style.transform = `translateY(${-100 * eased}%)`;
+          lock.style.visibility = eased >= 0.999 ? "hidden" : "visible";
         }
       }
-      // The shackle lifts first, then swings open.
       const shackle = root.querySelector<SVGElement>("[data-shackle]");
       if (shackle) {
-        const lift = Math.min(1, rig.open / 0.4);
-        const swing = Math.min(1, Math.max(0, (rig.open - 0.35) / 0.65));
+        const lift = clamp01(rig.open / 0.25);
+        const swing = clamp01((rig.open - 0.2) / 0.2);
         shackle.style.transformOrigin = "16px 11px";
         shackle.style.transform = `translateY(${-3.2 * lift}px) rotate(${-32 * swing}deg)`;
       }
@@ -91,11 +118,14 @@ export function InnerScreen({ rig, metrics, current, near, onOpen }: InnerScreen
   }, [rig]);
 
   const active = current >= 0 ? projects[current] : null;
+  const wallpaper = projects[0].shot ? `/shots/${projects[0].id}-fold.jpg` : undefined;
+  const date = day ? day.split(" ").slice(0, 3).join(" ") : "";
 
-  // Runtime layout values, all from the measured mesh.
+  // The page is laid out at exactly the poster's viewport; only the corner
+  // radius comes from the measured mesh.
   const size = {
-    width: metrics.px.w,
-    height: metrics.px.h,
+    width: INNER_PX.w,
+    height: INNER_PX.h,
     "--ir": `${metrics.px.r}px`,
   } as CSSProperties;
 
@@ -113,21 +143,26 @@ export function InnerScreen({ rig, metrics, current, near, onOpen }: InnerScreen
       ))}
       <div className={styles.crease} aria-hidden="true" />
       <div className={styles.lock} data-lock aria-hidden="true">
-        <div className={styles.chip}>
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#141414"
-            strokeWidth="1.3"
-            strokeLinecap="round"
-          >
-            <path data-shackle d="M8 11V7.5a4 4 0 0 1 8 0V11" />
-            <rect x="5" y="11" width="14" height="10" rx="2.5" fill="rgba(255,255,255,.7)" />
-            <circle cx="12" cy="15.4" r="1.2" fill="#141414" stroke="none" />
-            <path d="M12 16.4v1.8" />
-          </svg>
-          <p>{projectsAct.lockedLabel}</p>
-        </div>
+        <div
+          className={styles.wall}
+          // Runtime value: the first project's own page, blurred, is the wallpaper.
+          style={wallpaper ? { backgroundImage: `url(${wallpaper})` } : undefined}
+        />
+        <svg
+          className={styles.lockIcon}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        >
+          <path data-shackle d="M8 11V7.5a4 4 0 0 1 8 0V11" />
+          <rect x="5" y="11" width="14" height="10" rx="2.5" />
+        </svg>
+        <p className={styles.date}>{date}</p>
+        <p className={styles.time}>{clock ?? "--:--"}</p>
+        <p className={styles.city}>Bangkok</p>
+        <p className={styles.hint}>{projectsAct.lockedLabel}</p>
       </div>
       <button
         type="button"
@@ -140,7 +175,7 @@ export function InnerScreen({ rig, metrics, current, near, onOpen }: InnerScreen
           onOpen(event.currentTarget.getBoundingClientRect(), event.currentTarget)
         }
       />
-      <span className={styles.hint}>{projectsAct.openHint}</span>
+      <span className={styles.hint2}>{projectsAct.openHint}</span>
     </div>
   );
 }

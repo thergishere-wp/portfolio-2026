@@ -6,70 +6,29 @@ import {
   TextureLoader,
   type Texture,
 } from "three";
-import { projects } from "@/content/projects";
-import { FOLD, INNER } from "@/lib/fold-rig";
+import { projects, projectsAct } from "@/content/projects";
+import { INNER, INNER_PX } from "@/lib/fold-rig";
+import { formatBangkok } from "@/lib/time";
 import type { Side } from "./fold-geometry";
 
 /** The page a project's inner screen shows while it is not the live one. */
 function foldShot(index: number): string | null {
   const project = projects[index];
-  return project.status === "soon" || !project.shot ? null : `/shots/${project.id}-fold.jpg`;
+  return project.shot ? `/shots/${project.id}-fold.jpg` : null;
 }
 
-/** KaYo's site is not live, so its screen is drawn: the "Launching soon" card. */
-function drawSoonCard(): CanvasTexture {
-  const w = 1024;
-  const h = 784;
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("no 2d context");
-  const bg = ctx.createLinearGradient(0, 0, w, h);
-  bg.addColorStop(0, "#26262b");
-  bg.addColorStop(1, "#141417");
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, w, h);
-  const glow = ctx.createRadialGradient(w * 0.78, h * 0.18, 10, w * 0.78, h * 0.18, 420);
-  glow.addColorStop(0, "rgba(91,61,245,.38)");
-  glow.addColorStop(1, "rgba(91,61,245,0)");
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = "#f3f1ec";
-  ctx.font = "600 44px system-ui, sans-serif";
-  ctx.fillText("KaYo.", 64, 100);
-  ctx.fillStyle = "rgba(240,170,60,.16)";
-  ctx.beginPath();
-  ctx.roundRect(w - 304, 62, 240, 52, 26);
-  ctx.fill();
-  ctx.fillStyle = "#f0aa3c";
-  ctx.font = "500 22px ui-monospace, monospace";
-  ctx.fillText("Launching soon", w - 270, 96);
-  ctx.fillStyle = "#f3f1ec";
-  ctx.font = "400 76px Georgia, serif";
-  ctx.fillText("Custom platforms for", 64, 340);
-  ctx.fillText("small business,", 64, 428);
-  ctx.fillStyle = "#a99cff";
-  ctx.font = "italic 400 76px Georgia, serif";
-  ctx.fillText("built fast and kept", 64, 516);
-  ctx.fillText("running.", 64, 604);
-  ctx.fillStyle = "rgba(243,241,236,.55)";
-  ctx.font = "500 22px ui-monospace, monospace";
-  ctx.fillText("Build + monthly retainer   Next.js · Supabase   TH · NZ · LK", 64, 712);
-  const texture = new CanvasTexture(canvas);
-  texture.colorSpace = SRGBColorSpace;
-  return texture;
-}
+/** Index of the lock-screen texture, after the projects' own. */
+export const LOCK_TEXTURE = projects.length;
 
 /** A plain stand-in for a shot that could not be loaded: the device still appears. */
 function drawPlaceholder(name: string): CanvasTexture {
   const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 392;
+  canvas.width = INNER_PX.w / 2;
+  canvas.height = INNER_PX.h / 2;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("no 2d context");
   ctx.fillStyle = "#1c1c20";
-  ctx.fillRect(0, 0, 512, 392);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "rgba(243,241,236,.7)";
   ctx.font = "500 30px system-ui, sans-serif";
   ctx.fillText(name, 32, 72);
@@ -78,9 +37,96 @@ function drawPlaceholder(name: string): CanvasTexture {
   return texture;
 }
 
+/** The lock screen's own texture: it redraws itself when the minute changes. */
+export interface LockTexture extends CanvasTexture {
+  redraw: () => void;
+}
+
+/**
+ * The lock screen as a texture, so the device shows its lock while it unfolds
+ * (the DOM lock in InnerScreen takes over, identical, once it is open). The
+ * wallpaper is project 0's own page, blurred; then the date, the Bangkok
+ * time, the lock icon and the hint. Sizes match inner.module.css.
+ */
+function drawLock(wallpaper: CanvasImageSource | null): LockTexture {
+  const { w, h } = INNER_PX;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("no 2d context");
+  const small = document.createElement("canvas");
+  small.width = 40;
+  small.height = Math.round((40 * h) / w);
+  const sctx = small.getContext("2d");
+  if (wallpaper && sctx) {
+    // Blur by shrinking hard and scaling back up with smoothing.
+    sctx.drawImage(wallpaper, 0, 0, small.width, small.height);
+  }
+  let minute = "";
+
+  const draw = (): void => {
+    const now = new Date();
+    const clock = formatBangkok("short", now);
+    if (clock === minute) return;
+    minute = clock;
+    const date = formatBangkok("menubar", now).split(" ").slice(0, 3).join(" ");
+    const family = getComputedStyle(document.body).fontFamily || "system-ui, sans-serif";
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.fillStyle = "#1b1830";
+    ctx.fillRect(0, 0, w, h);
+    if (wallpaper) ctx.drawImage(small, -w * 0.06, -h * 0.06, w * 1.12, h * 1.12);
+    ctx.fillStyle = "rgba(14,12,26,.46)";
+    ctx.fillRect(0, 0, w, h);
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(255,255,255,.88)";
+    ctx.save();
+    ctx.translate(w / 2 - 27, 92);
+    ctx.scale(54 / 24, 54 / 24);
+    ctx.lineWidth = 1.6;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "rgba(255,255,255,.88)";
+    ctx.stroke(new Path2D("M8 11V7.5a4 4 0 0 1 8 0V11"));
+    ctx.beginPath();
+    ctx.roundRect(5, 11, 14, 10, 2.5);
+    ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = "rgba(255,255,255,.8)";
+    ctx.font = `500 32px ${family}`;
+    ctx.fillText(date, w / 2, 232);
+    ctx.fillStyle = "#fff";
+    ctx.font = `300 200px ${family}`;
+    ctx.fillText(clock, w / 2, 410);
+    ctx.fillStyle = "rgba(255,255,255,.62)";
+    ctx.font = `500 22px ui-monospace, monospace`;
+    ctx.fillText("BANGKOK", w / 2, 462);
+    ctx.fillStyle = "rgba(255,255,255,.7)";
+    ctx.font = `500 21px ui-monospace, monospace`;
+    ctx.fillText(projectsAct.lockedLabel.toUpperCase(), w / 2, h - 64);
+    texture.needsUpdate = true;
+  };
+
+  const texture = new CanvasTexture(canvas) as LockTexture;
+  texture.colorSpace = SRGBColorSpace;
+  // Checked every few seconds, not every frame.
+  let checked = 0;
+  texture.redraw = () => {
+    const t = performance.now();
+    if (t - checked < 4000) return;
+    checked = t;
+    draw();
+  };
+  draw();
+  return texture;
+}
+
 let cache: Promise<Texture[]> | null = null;
 
-/** Every project's inner-screen texture, loaded once and shared. Never rejects. */
+/**
+ * Every project's inner-screen texture (in project order), then the lock
+ * screen's, loaded once and shared. Never rejects.
+ */
 export function loadFoldTextures(): Promise<Texture[]> {
   if (cache) return cache;
   const loader = new TextureLoader();
@@ -89,7 +135,8 @@ export function loadFoldTextures(): Promise<Texture[]> {
       const src = foldShot(i);
       let texture: Texture;
       try {
-        texture = src ? await loader.loadAsync(src) : drawSoonCard();
+        if (!src) throw new Error("no shot");
+        texture = await loader.loadAsync(src);
       } catch {
         // A failed request (offline, throttled) must not take the device down.
         texture = drawPlaceholder(project.name);
@@ -100,7 +147,10 @@ export function loadFoldTextures(): Promise<Texture[]> {
       texture.generateMipmaps = true;
       return texture;
     }),
-  );
+  ).then((textures) => {
+    const first = textures[0]?.image as CanvasImageSource | undefined;
+    return [...textures, drawLock(first ?? null)];
+  });
   return cache;
 }
 
@@ -111,6 +161,8 @@ export interface ScreenUniforms {
   uP: { value: number };
   uMode: { value: number };
   uAspect: { value: number };
+  /** 1 while the two halves lie flat (crease shading), else 0. */
+  uFlat: { value: number };
 }
 
 export function createScreenUniforms(): ScreenUniforms {
@@ -119,7 +171,8 @@ export function createScreenUniforms(): ScreenUniforms {
     uB: { value: null },
     uP: { value: 1 },
     uMode: { value: 0 },
-    uAspect: { value: (2 * (INNER.w + FOLD.crease)) / INNER.h },
+    uAspect: { value: (2 * INNER.w) / INNER.h },
+    uFlat: { value: 0 },
   };
 }
 
@@ -142,15 +195,13 @@ const FRAGMENT = /* glsl */ `
   uniform float uP;
   uniform float uMode;
   uniform float uAspect;
+  uniform float uFlat;
   varying vec2 vUv;
 
-  const float TEX_ASPECT = 1024.0 / 784.0;
-
-  // Cover-fit: the shot fills the screen, cropped at the sides if needed.
+  // Every poster is captured at exactly the iframe's viewport (INNER_PX), and
+  // the screen has that aspect, so it is sampled 1:1: no crop, no scaling.
   vec3 shot(sampler2D t, vec2 uv) {
-    vec2 s = uv;
-    s.x = 0.5 + (uv.x - 0.5) * (uAspect / TEX_ASPECT);
-    return texture2D(t, clamp(s, 0.0, 1.0)).rgb;
+    return texture2D(t, clamp(uv, 0.0, 1.0)).rgb;
   }
   float ease(float x) { return x * x * (3.0 - 2.0 * x); }
   float sdRoundBox(vec2 p, vec2 b, float r) {
@@ -168,20 +219,13 @@ const FRAGMENT = /* glsl */ `
       col = mix(shot(uA, uv), shot(uB, uv), ease(p));
 
     } else if (uMode < 1.5) {
-      // App switcher: both pages shrink to cards and slide sideways.
-      col = vec3(0.075, 0.075, 0.09);
+      // Push: the old page slides out to the left as the new one slides in
+      // from the right. Full size, edge to edge: no shrinking, no bands.
       float t = ease(p);
-      float sA = mix(1.0, 0.7, ease(clamp(p / 0.42, 0.0, 1.0)));
-      float sB = mix(0.7, 1.0, ease(clamp((p - 0.5) / 0.5, 0.0, 1.0)));
-      vec2 cA = vec2(0.5 - 1.02 * t, 0.5);
-      vec2 cB = vec2(0.5 + 1.02 * (1.0 - t), 0.5);
-      vec2 qa = (uv - cA) / sA;
-      vec2 qb = (uv - cB) / sB;
-      float da = sdRoundBox(qa * vec2(uAspect, 1.0) - vec2(0.5 * uAspect, 0.5) + vec2(0.5 * uAspect, 0.5), vec2(0.5 * uAspect, 0.5), 0.05);
-      float db = sdRoundBox(qb * vec2(uAspect, 1.0), vec2(0.5 * uAspect, 0.5), 0.05);
-      col = mix(col, shot(uA, qa + 0.5) * 0.92, 1.0 - smoothstep(-0.004, 0.004, da));
-      col *= 1.0 - 0.35 * smoothstep(0.06, 0.0, db) * step(0.0, db);
-      col = mix(col, shot(uB, qb + 0.5), 1.0 - smoothstep(-0.004, 0.004, db));
+      col = uv.x < 1.0 - t
+        ? shot(uA, vec2(uv.x + t, uv.y))
+        : shot(uB, vec2(uv.x - (1.0 - t), uv.y));
+      col *= 1.0 - 0.18 * (1.0 - smoothstep(0.0, 0.05, abs(uv.x - (1.0 - t)))) * step(0.001, t) * step(t, 0.999);
 
     } else if (uMode < 2.5) {
       // Soft horizontal page turn: the new page wipes in from the left, the
@@ -226,6 +270,10 @@ const FRAGMENT = /* glsl */ `
       col += vec3(0.78, 0.66, 0.42) * (1.0 - smoothstep(0.0, 0.012, abs(arch))) * 0.85 * (1.0 - e);
     }
 
+    // A very subtle crease where the halves meet, only while they lie flat.
+    float dx = (vUv.x - 0.5) * ${INNER_PX.w}.0;
+    col *= 1.0 - 0.06 * uFlat * exp(-dx * dx / 40.0);
+
     gl_FragColor = linearToOutputTexel(vec4(col, 1.0));
   }
 `;
@@ -243,7 +291,7 @@ export function createScreenMaterial(
       ...shared,
       uSide: { value: side },
       uCentre: { value: Math.abs(centreX) },
-      uUnionW: { value: 2 * (INNER.w + FOLD.crease) },
+      uUnionW: { value: 2 * INNER.w },
       uH: { value: INNER.h },
     },
     toneMapped: false,

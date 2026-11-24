@@ -16,7 +16,7 @@ Personal portfolio for **Pasindu Mahen Walakuluarachchi**. A light "white room",
 |---|---|
 | Framework | Next.js (latest), App Router, **TypeScript strict** |
 | Styling | Tailwind CSS v4. Complex visual CSS (room, glass, device bodies) may live in CSS modules. **No inline style objects** except values computed at runtime (layout vars, transforms, measured sizes). |
-| Motion | `gsap` + `ScrollTrigger` + `@gsap/react` (`useGSAP`), `lenis` for smooth scroll and `lenis/snap` for the step snapping |
+| Motion | `gsap` + `ScrollTrigger` + `@gsap/react` (`useGSAP`), `lenis` for smooth scroll (no snapping) |
 | 3D | `three`, `@react-three/fiber`, `@react-three/drei` (the foldable only, procedural: no model file) |
 | Map | `maplibre-gl` + OpenFreeMap tiles (free, no key) |
 | Fonts | `next/font`: Instrument Serif (display), Geist + Geist Mono (UI and mono). Project screens also use IBM Plex Sans, Space Grotesk and DM Sans. |
@@ -53,7 +53,7 @@ components/
            screen/ AppScreen.tsx SummaryScreen.tsx ActivityRings.tsx TimeChart.tsx MostActive.tsx
                    ActivityFeed.tsx LocationMap.tsx MapView.tsx SocialsScreen.tsx
 content/   about.ts projects.ts socials.ts   (all copy lives here, typed)
-lib/       step-sequencer.ts snap-points.ts scroll-budget.ts fold-rig.ts island-store.ts webgl.ts useNear.ts
+lib/       step-driver.ts scroll-budget.ts fold-rig.ts island-store.ts webgl.ts useNear.ts
            useStageLayout.ts smooth-scroll.tsx github.ts activity-stats.ts room-light.ts time.ts
 public/    img/portrait.jpg img/event-camera.jpg  cv.pdf (a placeholder)  shots/<id>.png <id>-fold.jpg
 scripts/   capture-shots.ts (--fold)  check-frameable.ts  check-continuity.ts  check-3d.ts  phone-corners.ts  mock-github.ts
@@ -67,13 +67,16 @@ Keep components small with one job each. All copy lives in `content/*.ts`.
 - **A living room** (subtle; all of it is off under `prefers-reduced-motion`): a pale oak desk and keyboard slab as children of the iMac; soft leaf shadows and 26 drifting dust specks; real Bangkok time of day written to CSS variables on `<html>` every 30 s (`lib/room-light.ts`; `?hour=21.5` previews a time).
 - **The scroll model (applies to everything):**
   - **Scrub only camera moves**: the iMac's zoom in and out, and the device's rotation, fold and travel. `scrub: true` (Lenis is the only smoothing, so a frame never depends on how fast it was reached).
-  - **Every content reveal is a step**: a short time-based timeline (0.5-0.9 s per tween) that plays in full when its scroll position is crossed going down and reverses in full when crossed going up (`lib/step-sequencer.ts`). Jumping over several steps finishes or resets the skipped ones instantly and animates only the last, so the state at a scroll position is a pure function of the position: **the same position gives the same frame from either direction**. One tween owns each animated property.
-  - **Lenis Snap** (`lenis/snap`, `type: "lock"`, unlimited distance) settles on each step's rest. One scroll gesture moves to the next rest in its direction, so a small scroll always does something and there is no dead scroll. Snap points are re-registered on every ScrollTrigger refresh (`lib/snap-points.ts`). Snap pauses and resumes together with Lenis (intro, open windows).
+  - **Every content change is a function of one `step` value.** `step` is the last threshold the scroll position has crossed (`components/stage1/storySteps.ts`, thresholds in vh from the budget below). The state of every element (list visible/active/past, which project's screen, the overview card and its content, the lock, the phone's fold state, which cover layer) is a pure table of `step`, applied by lanes (`lib/step-driver.ts`): when the step changes a lane kills its own in-flight tweens (`overwrite: "auto"`) and tweens to the new state in 0.5-0.8 s, so fast scrolling cannot stack animations and **the same position gives the same frame from either direction**. Nothing is toggled in separate onEnter/onLeave callbacks. One owner per property: the scrub owns the camera and exit moves, steps own content.
+  - **No snapping, ever.** The user always controls the position (Lenis `lerp: 0.1`, `wheelMultiplier: 1`); it settles within a few hundred ms of the last input, with no drift. One 100 px wheel tick never crosses more than one step.
+  - **Orientation follows the phone's actual rotation**: the socials' landscape layout, the island's orientation and the cover layers' visibility read `rig.rz` (landscape only when |rz| > pi/4) and the hinge angle, never the step, so reversing cannot show rotated content on an upright phone.
+  - **Clicks:** nothing inactive may sit above something clickable. R3F's canvas wrapper and drei's `<Html>` wrapper for the inner screen are `pointer-events: none`; the Projects column is click-through except the names; each step lane sets `pointer-events` with its layer's visibility. Scrolling panes (the repositories list, the phone's Summary) keep `data-lenis-prevent` only while they can scroll in the wheel's direction (`lib/useWheelHandoff.ts`), so the wheel never gets stuck. `npm run check:clicks` clicks everything with a real mouse.
+  - **The unfold is scrubbed** (linear, 0.42 vh, about 4 ticks), not a timed step. Live pages keep rendering (opacity 0, never `visibility: hidden`, which Chrome throttles) so their hero has painted when they fade in, 0.9 s after load and only after the poster's own transition has finished.
   - **One pin.** The whole story is one pinned section, so there is no pin-spacing handoff between stages.
-- **Scroll budget** (`lib/scroll-budget.ts`, one timeline unit = one viewport height; top of page to Contact is **6.6 vh, must stay ≤ 8.5**): zoom in 1.0 · About stop 0.4 · zoom out 0.5 · Projects: enter 0.3, list 0.3, first project 0.4, unlock 0.3, each next project 0.35 (×4) · fold shut → Activity phone 0.8 · Activity hold 0.6 · turn to landscape → Contact 0.6.
-- **Smooth scroll:** Lenis (`lerp: .085`) driven from `gsap.ticker`, forwarded to `ScrollTrigger.update`, `lagSmoothing(0)`. Locked (`lenis.stop()` + `overflow:hidden`) until the intro finishes. `history.scrollRestoration = 'manual'`.
+- **Scroll budget** (`lib/scroll-budget.ts`, one timeline unit = one viewport height; top of page to Contact is **8.1 vh, must stay ≤ 8.5**): zoom in 0.8 · About stop 0.6 · zoom out 0.5 · Projects: enter 0.5, list 0.5, first project + unfold 0.5, unlock 0.5, each next project 0.45 (×4) · fold → Activity 1.0 (scrubbed: card, list, title leave, the phone folds port-first and stands on the left) · Activity hold 0.6 · landscape → Contact 0.8 (scrubbed; the repos leave in the last 0.25 vh of the hold).
+- **Smooth scroll:** Lenis (`lerp: 0.1`, `wheelMultiplier: 1`) driven from `gsap.ticker`, forwarded to `ScrollTrigger.update`, `lagSmoothing(0)`. Locked (`lenis.stop()` + `overflow:hidden`) until the intro finishes. `history.scrollRestoration = 'manual'`.
 - **Custom cursor:** a small ink dot; over an openable project screen it grows into a violet "OPEN" disc. Hidden until the first pointer move and on touch.
-- **Side nav** (right edge): About / Work / Activity / Contact, each scrolling to a timeline label (about 1.4, work 2.2, activity 6.0, contact 6.6 vh).
+- **Side nav** (right edge): About / Work / Activity / Contact, each scrolling to a timeline label (about 1.4, work 2.05, activity 6.7, contact 8.1 vh).
 - **Live Bangkok clock** wherever the prototype shows one (`Intl.DateTimeFormat`, `Asia/Bangkok`).
 - **Resize:** recompute the layout and `ScrollTrigger.refresh()` (debounced); step positions are functions, re-read on refresh.
 - **Reduced motion, or no WebGL:** skip the intro, pinning and the 3D scene and show each section as a plain static layout (`StaticStage` + `Stage3Static`).
@@ -107,7 +110,7 @@ Camera (scrubbed): 0-1.0 vh the iMac zooms into the display; 1.4-1.9 vh it zooms
 - Accessibility: windows are `role="dialog"` with `aria-modal`, a name and a **focus trap**; focus returns to the icon on close; **Lenis is paused** while a window is open.
 
 ### 4.4 Projects act (the foldable, stepped and clickable)
-Three columns: the **title and list** (left, DOM), a **floating overview card** (middle, overlapping the device slightly, DOM) and the **3D foldable** (right, the story's canvas). Order: **Kai-Flo** (kaiflo.app, login page only), **KaYo Devs** (kayodev.com, not live: a drawn "Launching soon" screen), **Lanka N Beyond**, **Denova Technologies**, **Ceylora**.
+Three columns: the **title and list** (left, DOM), a **floating overview card** (middle, overlapping the device slightly, DOM) and the **3D foldable** (right, the story's canvas). Order: **Kai-Flo** (kaiflo.app, the public landing page at "/"), **KaYo Devs** (kayodev.com, live), **Lanka N Beyond**, **Denova Technologies**, **Ceylora**.
 
 Steps (each a time-based timeline, played on entering and reversed on leaving; rests at 2.2, 2.5, 2.9, 3.2, 3.55, 3.9, 4.25, 4.6 vh):
 - **S0 enter (0.3):** only the "Projects" title; the **folded** device floats in on the right. Its cover screen is a lock screen (Bangkok time, a lock icon, "Scroll to unlock").
@@ -118,7 +121,7 @@ Steps (each a time-based timeline, played on entering and reversed on leaving; r
   - KaYo Devs: app-switcher swipe (cards slide sideways) · Lanka N Beyond: soft horizontal page-turn wipe · Denova: blueprint grid scan line revealing the page top to bottom · Ceylora: arch-shaped iris reveal.
 - **Clicking a project name** scrolls straight to its step (`lenis.scrollTo`), so nobody is forced through all of them.
 - **Live pages:** an `<iframe>` laid out at the inner screen's pixel size (1024 wide, a tablet viewport), `pointer-events: none`, `sandbox="allow-scripts allow-same-origin allow-forms allow-popups"`, `referrerPolicy="no-referrer"`, `tabIndex={-1}`, hidden until loaded. **Only the current and the next are mounted**, and only once the story is near. The DOM is clipped to the mesh's measured shape and corner radius. `scripts/check-frameable.ts` keeps the per-project `frameable` flag honest; `npm run shots -- --fold` makes the tablet shots.
-- **Click the open inner screen** to open `ProjectViewer`: a FLIP from the screen's on-screen rectangle to 90vw × 90vh over a blurred backdrop, with an interactive **desktop-size** iframe, the URL, **Open in new tab ↗** and **Close (Esc)**. Lenis is paused while it is open; closing reverses the FLIP. KaYo Devs shows its card and "Launching soon".
+- **Click the open inner screen** to open `ProjectViewer`: a FLIP from the screen's on-screen rectangle to 90vw × 90vh over a blurred backdrop, with an interactive **desktop-size** iframe, the URL, **Open in new tab ↗** and **Close (Esc)**. Lenis is paused while it is open; closing reverses the FLIP. 
 
 ## 5. The foldable: Projects, Activity and Contact
 

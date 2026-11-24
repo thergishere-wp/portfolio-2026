@@ -27,9 +27,7 @@ export function ProjectsStatic() {
               >
                 {project.domain} ↗
               </a>
-            ) : (
-              <span className={styles.soon}>{projectsAct.soonPill}</span>
-            )}
+            ) : null}
             <p>{project.overview}</p>
             <div className={cn("chips", styles.tags)}>
               {project.tags.map((tag) => (

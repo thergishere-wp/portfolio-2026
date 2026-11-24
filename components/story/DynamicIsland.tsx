@@ -18,16 +18,17 @@ import styles from "./island.module.css";
 type Mode = "idle" | "push" | "last" | "available" | "handle";
 
 /**
- * Target size of each mode in em: [length along the reading direction,
- * thickness]. In landscape the screen is turned, so the pill's own width and
- * height swap.
+ * Target size of each mode in em: [length along the top edge, thickness]. The
+ * island is part of the device, so it turns with it: in landscape the phone's
+ * top edge is a short edge of the view (its right side), and the pill lies
+ * ALONG that edge and grows along it, never into the content.
  */
 const SIZE: Record<Mode, readonly [number, number]> = {
   idle: [8.2, 2.4],
   push: [21, 3.4],
   last: [21.5, 3],
-  available: [12.6, 2.3],
-  handle: [13.4, 2.3],
+  available: [13.6, 2.4],
+  handle: [17, 2.4],
 };
 
 /** How long a push (or a tap) keeps the island open. */
@@ -74,7 +75,7 @@ const LockSvg = ({ className }: { className: string }) => (
  * With prefers-reduced-motion there is no spring: the size changes at once and
  * the text cross-fades.
  */
-export function DynamicIsland({ rig }: { rig: Pick<FoldRig, "social"> }) {
+export function DynamicIsland({ rig }: { rig: Pick<FoldRig, "rz"> }) {
   const reduced = usePrefersReducedMotion();
   const { activity } = useGithub();
   const hover = useIslandHover();
@@ -86,11 +87,13 @@ export function DynamicIsland({ rig }: { rig: Pick<FoldRig, "social"> }) {
   const [event, setEvent] = useState<PushEvent | null>(null);
   const [tapped, setTapped] = useState(false);
 
-  // Landscape means the Contact screen is showing.
+  // Landscape follows the phone's ACTUAL rotation (more than 45 degrees), so
+  // going back up from Contact can never leave a landscape island on an
+  // upright phone.
   useEffect(() => {
     let last = false;
     const check = (): void => {
-      const next = rig.social > 0.5;
+      const next = Math.abs(rig.rz) > Math.PI / 4;
       if (next === last) return;
       last = next;
       setLandscape(next);
@@ -150,7 +153,7 @@ export function DynamicIsland({ rig }: { rig: Pick<FoldRig, "social"> }) {
   useLayoutEffect(() => {
     const el = pillRef.current;
     if (!el) return;
-    const [w, h] = landscape ? [thickness, length] : [length, thickness];
+    const [w, h] = [length, thickness];
     const area = length * thickness;
     const grows = area > previousArea.current;
     previousArea.current = area;
@@ -180,12 +183,11 @@ export function DynamicIsland({ rig }: { rig: Pick<FoldRig, "social"> }) {
         : `New push: ${pushText}`
       : "";
 
-  // Runtime layout values: the content box matches the target size and turns
-  // with the screen in landscape.
+  // Runtime layout values: the content box matches the target size.
   const box = {
     width: `${length}em`,
     height: `${thickness}em`,
-    transform: `translate(-50%, -50%)${landscape ? " rotate(-90deg)" : ""}`,
+    transform: "translate(-50%, -50%)",
   } as CSSProperties;
 
   return (

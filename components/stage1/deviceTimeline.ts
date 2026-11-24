@@ -1,8 +1,6 @@
 import { FOLD, projectsPxPerUnit, type FoldRig } from "@/lib/fold-rig";
 import { gsap } from "@/lib/gsap";
-import { BUDGET } from "@/lib/scroll-budget";
-import type { Step } from "@/lib/step-sequencer";
-import { enterAt, stepTimeline } from "./aboutTimeline";
+import { BUDGET, STEP_LEAD } from "@/lib/scroll-budget";
 
 /** The phone stands 22% of the viewport width left of centre beside the repositories. */
 export const ACTIVITY_X = -0.22;
@@ -34,113 +32,103 @@ interface DeviceTimelineParts {
   section: HTMLElement;
   imac: HTMLElement;
   rig: FoldRig;
-  steps: Step[];
   /** Where the last project's rest is, in viewport heights. */
   start: number;
 }
 
 /**
- * The Activity and Contact part of the story, appended after the last
- * project. Camera moves are scrubbed, reveals are steps:
+ * The unfold, then the Activity and Contact camera moves, appended after the
+ * last project. All of it is scrubbed (the position is exactly the scroll), so nothing here can
+ * run ahead of, or lag behind, the user.
  *
- *  scrubbed (0.8 vh): the device FOLDS SHUT, tilts back to show its bottom
- *    edge with the USB-C port and speaker holes (the port-first moment), then
- *    stands upright on the left; the Projects section moves up and away so
- *    there is no gap, and the iMac leaves the room
- *  step:     the cover screen cross-fades from the lock screen to the app
- *  step:     the Repositories window slides in (the activity hold, 0.6 vh)
- *  scrubbed (0.6 vh): the device returns to centre and turns to landscape
- *  step:     the repos leave, the cover becomes the socials, headline + email
+ * Fold -> Activity (1.0 vh), as one continuous move:
+ *   0.00  the overview card leaves first
+ *   0.08  the list names slide out to the left, staggered
+ *   0.35  then the title
+ *   0.10  the phone folds shut while it turns so its bottom edge (USB-C,
+ *         speakers) faces the camera, travelling left all the while
+ *   0.50  and stands upright on the left
+ *
+ * Activity hold (0.6 vh): nothing moves. The repositories window leaves in
+ * the last 0.25 vh of it, so it is fully gone before the phone starts to turn.
+ *
+ * Activity -> Contact (0.8 vh): the phone returns to the centre and turns to
+ * landscape.
  */
 export function appendDeviceTimeline({
   timeline: tl,
   section,
   imac,
   rig,
-  steps,
   start,
 }: DeviceTimelineParts): void {
   const $ = gsap.utils.selector(section);
+
+  // The unfold is a camera move, so it is scrubbed, and linear so that it
+  // really is spread over the ticks: 0.42 vh is about 3.4 wheel ticks of 100 px
+  // at 812 px, the lock screen then waits a moment before the unlock step
+  // slides it away.
+  const first =
+    BUDGET.zoomIn + BUDGET.aboutStop + BUDGET.zoomOut + BUDGET.projEnter + BUDGET.projList;
+  tl.to(rig, { unfold: 1, turn: 0, duration: 0.42, ease: "none" }, first + STEP_LEAD);
+
   const activity = start + BUDGET.toActivity;
   const hold = activity + BUDGET.activityHold;
   const contact = hold + BUDGET.toContact;
-  const out = { opacity: 1, y: 0, ease: "power2.out" } as const;
 
-  // Scrubbed: fold shut, port-first, upright on the left.
-  tl.to(rig, { shut: 1, duration: 0.4, ease: "power2.inOut" }, start)
+  // The Projects text leaves to the left, in order.
+  tl.to(
+    $("[data-minis]"),
+    { autoAlpha: 0, x: -36, duration: 0.12, ease: "power2.in" },
+    start,
+  )
     .to(
-      rig,
-      { rx: -1.2, ry: -0.34, rz: 0.1, y: -0.06, duration: 0.4, ease: "power2.inOut" },
-      start + 0.05,
+      $("[data-p]"),
+      { xPercent: -140, stagger: 0.04, duration: 0.25, ease: "power2.in" },
+      start + 0.08,
     )
     .to(
-      rig,
-      {
-        rx: 0,
-        ry: 0,
-        rz: 0,
-        y: 0,
-        x: ACTIVITY_X,
-        scale: activityScale,
-        duration: 0.3,
-        ease: "power3.inOut",
-      },
-      start + 0.5,
+      $("[data-a2-rv]"),
+      { xPercent: -140, stagger: 0.05, duration: 0.25, ease: "power2.in" },
+      start + 0.35,
     )
-    .to(rig, { shadow: 1, duration: 0.3 }, start + 0.5)
-    // The Projects section moves up and away, and the iMac leaves the room.
-    .to(
-      $("[data-projects-dom]"),
-      { yPercent: -115, autoAlpha: 0, duration: 0.55, ease: "power2.in" },
-      start,
-    )
-    .to($("[data-orb]"), { yPercent: -140, duration: 0.6, ease: "power2.in" }, start)
+    .to($("[data-orb]"), { yPercent: -140, duration: 0.6, ease: "power2.in" }, start + 0.1)
     .to(imac, { opacity: 0, duration: 0.5, ease: "none" }, start);
 
-  // Scrubbed: back to centre, turned to landscape.
-  tl.to(rig, { x: 0, shadow: 0, duration: 0.5, ease: "power2.inOut" }, hold + 0.05).to(
-    rig,
-    { rz: -Math.PI / 2, y: -0.06, scale: landscapeScale, duration: 0.55, ease: "power3.inOut" },
-    hold + 0.05,
+  // The phone: folds shut, port-first, travels left and stands upright. The
+  // travel is one continuous move, so there is no flat-lying pose in the middle.
+  tl.to(rig, { shut: 1, duration: 0.45, ease: "power2.inOut" }, start + 0.1)
+    .to(
+      rig,
+      { rx: -0.95, ry: -0.3, rz: 0.08, y: -0.05, duration: 0.35, ease: "power2.inOut" },
+      start + 0.1,
+    )
+    .to(
+      rig,
+      { rx: 0, ry: 0, rz: 0, y: 0, duration: 0.4, ease: "power3.inOut" },
+      start + 0.5,
+    )
+    .to(
+      rig,
+      { x: ACTIVITY_X, scale: activityScale, duration: 0.75, ease: "power2.inOut" },
+      start + 0.15,
+    )
+    .to(rig, { shadow: 1, duration: 0.3 }, start + 0.65);
+
+  // The repositories window leaves, fully, before the phone starts to turn.
+  tl.to(
+    $("[data-repos]"),
+    { xPercent: 130, duration: 0.25, ease: "power2.in" },
+    hold - 0.25,
   );
 
-  tl.addLabel("activity", hold).addLabel("contact", contact);
+  // Back to the centre, turned to landscape.
+  tl.to(rig, { x: 0, shadow: 0, duration: 0.5, ease: "power2.inOut" }, hold).to(
+    rig,
+    { rz: -Math.PI / 2, y: -0.06, scale: landscapeScale, duration: BUDGET.toContact, ease: "power3.inOut" },
+    hold,
+  );
+
+  tl.addLabel("activity", activity).addLabel("contact", contact);
   tl.to({}, { duration: 0 }, contact);
-
-  // Step: once folded shut, the cover screen shows the app.
-  steps.push({
-    at: start + 0.4,
-    tl: stepTimeline()
-      .to(rig, { lock: 0, duration: 0.35 }, 0)
-      .to(rig, { app: 1, duration: 0.45 }, 0.15),
-  });
-
-  // Step: the activity hold: the Repositories window slides in.
-  steps.push({
-    at: enterAt(activity),
-    tl: stepTimeline().fromTo(
-      $("[data-repos]"),
-      { autoAlpha: 0, x: 120 },
-      { autoAlpha: 1, x: 0, duration: 0.8, ease: "power2.out" },
-      0,
-    ),
-  });
-
-  // Step: contact. The repos leave, the cover becomes the socials.
-  steps.push({
-    at: enterAt(hold),
-    tl: stepTimeline()
-      .to($("[data-repos]"), { autoAlpha: 0, x: 120, duration: 0.5, ease: "power2.in" }, 0)
-      .to(rig, { app: 0, duration: 0.35 }, 0.1)
-      .to(rig, { social: 1, duration: 0.45 }, 0.3)
-      .to(rig, { apps: 1, duration: 0.8 }, 0.35)
-      .fromTo($("[data-a3c]"), { opacity: 0, y: -20 }, { ...out, duration: 0.5 }, 0.3)
-      // autoAlpha: hidden (and so unfocusable) until it appears, since it holds a link.
-      .fromTo(
-        $("[data-a3-foot]"),
-        { autoAlpha: 0, y: 20 },
-        { autoAlpha: 1, y: 0, ease: "power2.out", duration: 0.5 },
-        0.4,
-      ),
-  });
 }

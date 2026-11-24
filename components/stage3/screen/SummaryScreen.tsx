@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { computeStats } from "@/lib/activity-stats";
 import type { CommitStamp } from "@/lib/github-types";
 import { useNow } from "@/lib/time";
+import { useWheelHandoff } from "@/lib/useWheelHandoff";
 import { ActivityRings } from "./ActivityRings";
 import type { FeedStatus } from "./ActivityFeed";
 import { MostActive } from "./MostActive";
@@ -20,11 +21,14 @@ interface SummaryScreenProps {
 /**
  * "Screen Time for code": rings, a coding-time chart and the most active
  * repositories, all counted from real commit timestamps. It scrolls inside
- * the phone (data-lenis-prevent keeps smooth scroll from hijacking it). With
+ * the phone (it takes the wheel only while it can scroll, see useWheelHandoff). With
  * no data it says so; nothing is invented.
  */
 export function SummaryScreen({ status, commits, viewed }: SummaryScreenProps) {
   const now = useNow();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Scrolls inside the phone only while it can; otherwise the wheel moves the page.
+  useWheelHandoff(scrollRef);
   // useNow is 0 until the first client tick; wait for a real clock.
   const stats = useMemo(
     () => (status === "ready" && now > 0 ? computeStats(commits, now) : null),
@@ -33,8 +37,8 @@ export function SummaryScreen({ status, commits, viewed }: SummaryScreenProps) {
 
   return (
     <div
+      ref={scrollRef}
       className={styles.scroll}
-      data-lenis-prevent
       role="region"
       aria-label="Activity summary"
       tabIndex={0}

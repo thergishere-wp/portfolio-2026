@@ -9,8 +9,8 @@
 
 export type ProjectId = "kaiflo" | "kayo" | "lnb" | "denova" | "ceylora";
 
-/** production = in production with real users; live = public site; soon = not live. */
-export type ProjectStatus = "production" | "live" | "soon";
+/** production = in production with real users; live = public site. */
+export type ProjectStatus = "production" | "live";
 
 export interface ProjectStat {
   value: string;
@@ -48,7 +48,6 @@ export const projectsAct = {
   title: "Projects",
   lockedLabel: "Scroll to unlock",
   openHint: "Click to open",
-  soonPill: "Launching soon",
 } as const;
 
 /**
@@ -58,29 +57,21 @@ export const projectsAct = {
  */
 export const privateRepoAllowList: Readonly<Record<string, string>> = {};
 
-/** The "Launching soon" card shown for KaYo Devs until kayodev.com is live. */
-export const soonCard = {
-  logo: "KaYo",
-  titleLead: "Custom platforms for small business,",
-  titleEmphasis: "built fast and kept running.",
-  chips: ["Build + monthly retainer", "Next.js · Supabase", "TH · NZ · LK"],
-} as const;
-
 export const projects: Project[] = [
   {
     id: "kaiflo",
     name: "Kai-Flo",
     domain: "kaiflo.app",
-    liveUrl: "https://kaiflo.app",
-    frameUrl: "https://www.kaiflo.app/login",
+    liveUrl: "https://kaiflo.app/",
+    frameUrl: "https://kaiflo.app/",
     frameable: true,
     shot: "/shots/kaiflo.png",
     status: "production",
     overview:
-      "In production with two Siam University units. Plans a clash-free timetable from every student's record, isolates each organisation at the database level, and its AI assistant never changes anything without a Confirm.",
+      "One platform for running an organisation's people, operations and academics. In production with two Siam University units.",
     tags: ["Next.js", "Supabase", "Postgres RLS", "Claude API"],
     viewerNote:
-      "Private platform, so only the login page is shown. A demo with fictional data is on the way.",
+      "The public landing page. The platform itself is private; a demo with fictional data is on the way.",
     stats: [
       { value: "144", label: "database tables, all row-level secured" },
       { value: "223", label: "security policies" },
@@ -92,15 +83,15 @@ export const projects: Project[] = [
     id: "kayo",
     name: "KaYo Devs",
     domain: "kayodev.com",
-    liveUrl: null,
-    frameUrl: null,
-    frameable: false,
-    shot: null,
-    status: "soon",
+    liveUrl: "https://kayodev.com/",
+    frameUrl: "https://kayodev.com/",
+    frameable: true,
+    shot: "/shots/kayo.png",
+    status: "live",
     overview:
-      "My studio, formerly RG Devs. Fixed-fee builds plus a monthly retainer for hosting, maintenance and updates. New brand site in progress at kayodev.com.",
+      "My studio, formerly RG Devs. Brand, web and product builds for small businesses in Thailand, New Zealand and Sri Lanka.",
     tags: ["Studio", "Next.js", "Vercel"],
-    viewerNote: "The new studio site is being built. Launching soon.",
+    viewerNote: null,
   },
   {
     id: "lnb",

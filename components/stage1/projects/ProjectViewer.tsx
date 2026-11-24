@@ -7,7 +7,6 @@ import type { Project } from "@/content/projects";
 import { cn } from "@/lib/cn";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { useLenis } from "@/lib/smooth-scroll";
-import { LaunchingSoonCard } from "./LaunchingSoonCard";
 import { FRAME_SANDBOX } from "./frame";
 import styles from "./ProjectViewer.module.css";
 
@@ -166,9 +165,7 @@ export function ProjectViewer({
         </div>
         <div className={styles.body}>
           <div className={styles.stage}>
-            {project.status === "soon" ? (
-              <LaunchingSoonCard />
-            ) : project.frameable && project.frameUrl ? (
+            {project.frameable && project.frameUrl ? (
               <iframe
                 className={styles.frame}
                 src={project.frameUrl}

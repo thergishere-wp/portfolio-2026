@@ -33,8 +33,7 @@ export interface FoldRig {
   trans: number;
   from: number;
   to: number;
-  /** The lock on the open inner screen: its visibility (0 to 1) and the unlock progress (0 to 1). */
-  chip: number;
+  /** The unlock progress of the inner screen's lock (0 = locked, 1 = slid away). */
   open: number;
   /** Opacity of each project's live page over the inner screen, by project index. */
   frames: Record<number, number>;
@@ -56,18 +55,31 @@ export const FOLD = {
   r: 0.11,
   /** Black border between the frame and a screen's outer edges. */
   bezel: 0.034,
-  /** Half the gap between the two inner screens (the crease). */
-  crease: 0.006,
   /** Radius of the hinge barrel. */
   hinge: 0.05,
 } as const;
 
-/** The inner screen of one half, and the union of both. */
+/**
+ * The inner screen of one half. The two halves' screens meet exactly at the
+ * hinge (x = 0), so the unfolded screen is one continuous plane: there is no
+ * gap for the hinge barrel to show through.
+ */
 export const INNER = {
-  w: FOLD.w - FOLD.bezel - FOLD.crease,
+  w: FOLD.w - FOLD.bezel,
   h: FOLD.h - 2 * FOLD.bezel,
   /** Corner radius of the outer corners. */
   r: FOLD.r - FOLD.bezel,
+} as const;
+
+/**
+ * The viewport, in CSS px, that the live iframe is laid out at AND that every
+ * poster screenshot is captured at (`npm run shots -- --fold`). The shader
+ * maps the poster 1:1 onto the unfolded screen, so a poster and the live page
+ * share the same viewport and scale and a crossfade between them cannot ghost.
+ */
+export const INNER_PX = {
+  w: 1024,
+  h: Math.round((1024 * INNER.h) / (2 * INNER.w)),
 } as const;
 
 /** The cover screen on the outer face of the right half. */
@@ -77,8 +89,12 @@ export const COVER = {
   r: FOLD.r - FOLD.bezel,
 } as const;
 
-/** Where the device sits in Projects: right of centre, a little above the middle. */
-export const PROJECTS_POSE = { x: 0.215, y: 0.02, rx: 0.05, ry: -0.1, rz: 0 } as const;
+/**
+ * Where the device sits in Projects: right of centre, a little above the
+ * middle, square to the camera (no yaw), so the two unfolded halves are
+ * coplanar and show the same height and the same scale.
+ */
+export const PROJECTS_POSE = { x: 0.215, y: 0.02, rx: 0.03, ry: 0, rz: 0 } as const;
 
 export function createFoldRig(): FoldRig {
   return {
@@ -93,7 +109,6 @@ export function createFoldRig(): FoldRig {
     trans: 1,
     from: 0,
     to: 0,
-    chip: 0,
     open: 0,
     frames: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 },
     lock: 1,

@@ -19,6 +19,9 @@
   text-align: center;
   z-index: 2;
   opacity: 0;
+  visibility: hidden;
+  /* Text only: never in the way of the dock, the phone or the links. */
+  pointer-events: none;
 }
 .copyEyebrow {
   justify-content: center;
